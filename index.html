@@ -100,7 +100,9 @@ function saveRun(){
 const clearRun = () => { try{ localStorage.removeItem(RUN_KEY); }catch(e){} };
 function loadRun(){ try{ return JSON.parse(localStorage.getItem(RUN_KEY)); }catch(e){ return null; } }
 addEventListener('pagehide', saveRun); // 關分頁、重新整理時存，擲完骰才重整也躲不掉結果
-const sanMax = s => Math.floor((s.CON + s.WIS) * 2.5) + 5*up('san');
+// SAN 管精神、體力管身體，兩條任一歸零都會結束冒險
+const sanMax = s => s.WIS*5 + 5*up('san');
+const hpMax = s => s.CON*2;
 const itemName = id => ITEMS[id]?.name || id;
 // 獲得物品：加進背包、記一行、跳出外觀/名字/用途視窗（點一下或按鍵關閉；連續獲得會排隊）
 const gainQ = [];
@@ -121,7 +123,7 @@ function renderStats(){
   if(!R) return;
   $('stats').innerHTML = `<b style="width:auto">${R.char.name}</b><br>`
     + Object.entries(STATS).map(([k,n])=>{ const m = statMod(k); return `<b>${n}</b>${R.stats[k]+m}${m ? `<small>（${m>0?'+':''}${m}）</small>` : ''}`; }).join('<br>')
-    + `<br><b>SAN</b>${R.san}/${R.sanMax}`
+    + `<br><b>體力</b>${R.hp}/${R.hpMax}<br><b>SAN</b>${R.san}/${R.sanMax}`
     + (R.char.ability ? `<br>✦ ${R.char.ability.name}` : '')
     + (R.rerollMax ? `<br>重擲 ${R.rerolls}/${R.rerollMax}` : '')
     + rules().map(r=>`<br>⚠ ${r.name}`).join('')
@@ -197,11 +199,13 @@ function renderPanel(){
 function syncVault(){ meta.vault = [...R.vault]; saveMeta(); renderPanel(); } // 保險箱一有變動就存檔
 const panelActs = {
   toVault(i){ if(R.vault.length>=slotCount()) return log('保險箱滿了。','bad'); R.vault.push(R.inv.splice(i,1)[0]); syncVault(); },
-  grow(i){ const k = Object.keys(STATS)[i]; if(!R.points) return; R.stats[k]++; R.points--; log(`${STATS[k]} +1`,'ok'); renderStats(); renderPanel(); },
+  grow(i){ const k = Object.keys(STATS)[i]; if(!R.points) return; R.stats[k]++; R.points--; log(`${STATS[k]} +1`,'ok');
+    if(k==='CON'){ R.hpMax += 2; R.hp += 2; } if(k==='WIS'){ R.sanMax += 5; R.san += 5; } renderStats(); renderPanel(); },
   toInv(i){ R.inv.push(R.vault.splice(i,1)[0]); syncVault(); },
   use(i){
     const id = R.inv.splice(i,1)[0], u = ITEMS[id].use;
     if(u.san){ R.san = Math.min(R.sanMax, R.san+u.san); log(`使用${itemName(id)}，SAN +${u.san}`,'ok'); }
+    if(u.hp){ R.hp = Math.min(R.hpMax, R.hp+u.hp); log(`使用${itemName(id)}，體力 +${u.hp}`,'ok'); }
     if(u.cure) cure(u.cure);
     if(u.stat){ R.stats[u.stat] += u.plus; log(`使用${itemName(id)}，${STATS[u.stat]} +${u.plus}（本局）`,'ok'); }
     renderStats(); renderPanel();
@@ -338,12 +342,12 @@ const menuActs = {
       + Object.entries(STATS).map(([k,n])=>`<div class="row"><span class="lbl">${n}</span>`
           + `<button data-act="adj" data-arg="${k}:-1" ${s[k]<=draft.base[k]?'disabled':''}>−</button><b>${s[k]}</b>`
           + `<button data-act="adj" data-arg="${k}:1" ${draft.pool<1||s[k]>=CAP?'disabled':''}>＋</button><small>Level 0 檢定（DC${levels[START].dc ?? BASE}）成功率 ${chance(s[k],levels[START].dc ?? BASE)}%</small></div>`).join('')
-      + `<p>SAN 上限：${sanMax(s)}（(體質＋感知)×2.5）</p><p>${abilityText(draft.char.ability)}</p><p>預購補給：${meta.pack.map(itemName).join('、') || '無'}</p>`
+      + `<p>體力上限：${hpMax(s)}（體質×2）　SAN 上限：${sanMax(s)}（感知×5）</p><p>${abilityText(draft.char.ability)}</p><p>預購補給：${meta.pack.map(itemName).join('、') || '無'}</p>`
       + `<button data-act="select">返回</button><button data-act="start">開始冒險</button>`);
   },
   start(){
     const c = draft.char, s = draft.stats;
-    R = {char:c, stats:s, san:sanMax(s), sanMax:sanMax(s), rerolls:0, inv:[...(c.ability?.startItems||[]), ...Array(up('supply')).fill('almond'), ...meta.pack], vault:[...meta.vault], flags:{}, status:{}, hint:up('hint')>0};
+    R = {char:c, stats:s, hp:hpMax(s), hpMax:hpMax(s), san:sanMax(s), sanMax:sanMax(s), rerolls:0, inv:[...(c.ability?.startItems||[]), ...Array(up('supply')).fill('almond'), ...meta.pack], vault:[...meta.vault], flags:{}, status:{}, hint:up('hint')>0};
     meta.pack = []; saveMeta();
     R.rerolls = R.rerollMax = (c.ability?.reroll||0) + up('reroll');
     $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
@@ -353,6 +357,7 @@ const menuActs = {
     const sv = loadRun();
     try{ await levelCfg(sv.level); }catch(e){ clearRun(); return menuActs.title(); } // 樓層檔不見了就放棄這個存檔
     R = sv.R; level = buildLevel(sv.level, sv.stages);
+    R.hpMax ??= hpMax(R.stats); R.hp ??= R.hpMax; // 加體力值之前的舊存檔
     $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
     log('（繼續上次的冒險）'); renderStats(); enterStage(sv.stageIdx, true);
     if(R.points) openPanel();
@@ -366,14 +371,14 @@ function endRun(kind, text){
   const lost = R.inv.map(itemName), kept = R.vault.map(itemName);
   meta.remnant += gain; meta.vault = [...R.vault]; meta.runs++; saveMeta(); clearRun();
   R = null; $('vaultBtn').style.display = 'none'; $('panel').style.display = 'none'; $('next').style.display = 'none'; $('prog').textContent = ''; unfocus();
-  screen(`<h2>${kind==='win' ? text || '你穿過了閃爍的牆' : '你的理智崩潰了'}</h2>`
+  screen(`<h2>${text || (kind==='win' ? '你穿過了閃爍的牆' : '你的理智崩潰了')}</h2>`
     + `<p>換成 Remnant 的物品：${lost.join('、') || '無'}${kind==='win' ? `（通關獎勵 +${WIN_BONUS}）` : ''}</p>`
     + `<p>獲得 <b>${gain}</b> Remnant，目前共 ${meta.remnant}</p><p>帶出的靈魂保險箱：${kept.join('、') || '空'}</p>`
     + `<button data-act="title">回到主選單</button>`);
 }
 
 // ---------- 事件執行器：關卡 JSON 的 onClick 就是動作清單 ----------
-// 動作：say / check(ok,fail,crit,fumble) / san+why / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
+// 動作：say / check(ok,fail,crit,fumble) / san+why / hp+why / hpHeal / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
 function run(actions, obj){
   for(const a of actions){
     if(!R) return false; // 樓層規則的 onFail 可能已經把人弄死了
@@ -384,6 +389,11 @@ function run(actions, obj){
       R.san = Math.max(0, R.san-n); log(`${a.why||''}　SAN -${n}`,'bad'); renderStats();
       if(R.san===0){ endRun('death'); return false; }
     }
+    if(a.hp){
+      const n = d(a.hp);
+      R.hp = Math.max(0, R.hp-n); log(`${a.why||''}　體力 -${n}`,'bad'); renderStats();
+      if(R.hp===0){ endRun('death', '你倒下了，再也沒有站起來'); return false; }
+    }
     if(a.give) gain(a.give);
     if(a.status) addStatus(a.status);
     if(a.cure) cure(a.cure);
@@ -393,6 +403,7 @@ function run(actions, obj){
     if(a.take) R.inv.splice(R.inv.indexOf(a.take),1);
     if(a.set) R.flags[a.set] = true;
     if(a.heal){ R.san = Math.min(R.sanMax, R.san+a.heal); log(`SAN +${a.heal}`,'ok'); renderStats(); }
+    if(a.hpHeal){ R.hp = Math.min(R.hpMax, R.hp+a.hpHeal); log(`體力 +${a.hpHeal}`,'ok'); renderStats(); }
     if(a.route) routeHint();
     if(a.shop) openShop(a.shop, obj);
     if(a.ifFlag && run(R.flags[a.ifFlag] ? a.then||[] : a.else||[], obj)===false) return false;
