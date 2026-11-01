@@ -1,0 +1,20 @@
+{
+  "custom": {
+    "name": "無名者", "desc": "一個普通人。所有屬性從 10 起算，點數完全自由分配。",
+    "pool": 12
+  },
+  "presets": [
+    { "id": "guard", "name": "保全老李", "cost": 80,
+      "desc": "守夜二十年，什麼怪事都見過一點。",
+      "stats": { "STR": 14, "DEX": 11, "WIS": 12, "INT": 10, "CHA": 10, "CON": 16 }, "pool": 4,
+      "ability": { "name": "老手電筒", "desc": "每次冒險可重擲 1 次失敗的檢定", "reroll": 1 } },
+    { "id": "nurse", "name": "夜班護理師", "cost": 80,
+      "desc": "習慣在半夜保持冷靜。",
+      "stats": { "STR": 9, "DEX": 12, "WIS": 16, "INT": 14, "CHA": 13, "CON": 11 }, "pool": 4,
+      "ability": { "name": "冷靜", "desc": "每次 SAN 損失 -1（至少 1）", "sanReduce": 1 } },
+    { "id": "mover", "name": "搬家工人", "cost": 120,
+      "desc": "力氣大，包包裡總有點東西。",
+      "stats": { "STR": 16, "DEX": 11, "WIS": 11, "INT": 10, "CHA": 10, "CON": 17 }, "pool": 4,
+      "ability": { "name": "隨身補給", "desc": "開局帶 2 瓶杏仁水", "startItems": ["almond", "almond"] } }
+  ]
+}

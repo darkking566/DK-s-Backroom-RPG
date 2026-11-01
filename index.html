@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Backrooms 雛形</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden;font-family:system-ui,"Microsoft JhengHei",sans-serif;color:#e8e2b0}
+  canvas{display:block}
+  #stats{position:fixed;top:10px;left:10px;background:#000a;padding:8px 12px;border:1px solid #6b6530;font-size:14px;line-height:1.5}
+  #stats b{display:inline-block;width:3em}
+  #log{position:fixed;bottom:14px;left:12%;right:12%;height:18vh;overflow:hidden;background:#000b;padding:10px 16px;border:1px solid #6b6530;font-size:16px;line-height:1.5;pointer-events:none}
+  #log p{margin:2px 0}
+  #log:empty{display:none}
+  .ok{color:#8fe88f}.bad{color:#ff8a7a}.sys{color:#9aa}
+  #tip{position:fixed;top:10px;right:10px;background:#000a;padding:6px 10px;border:1px solid #6b6530;font-size:13px;text-align:right}
+  #hover{position:fixed;pointer-events:none;background:#000c;padding:2px 8px;border:1px solid #e8e2b0;font-size:13px;display:none}
+  #next{position:fixed;right:12%;bottom:calc(18vh + 36px);display:none;margin:0;font-size:18px;padding:8px 22px;background:#5b5216;animation:pulse 1.6s infinite;z-index:3}
+  #next:hover{background:#7a6f22}
+  @keyframes pulse{50%{opacity:.6}}
+  #prog{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#000a;padding:4px 14px;border:1px solid #6b6530;font-size:13px;letter-spacing:.1em}
+  #prog:empty{display:none}
+  #menu{position:fixed;inset:0;background:#000e;display:none;align-items:center;justify-content:center;z-index:10;overflow:auto}
+  .box{max-width:900px;padding:20px 28px;border:1px solid #6b6530;background:#14120a;text-align:center;margin:auto}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+  .card{width:240px;border:1px solid #6b6530;padding:4px 12px 10px;text-align:left;font-size:13px}
+  button{background:#2a2610;color:#e8e2b0;border:1px solid #6b6530;padding:6px 14px;margin:4px;cursor:pointer;font:inherit}
+  button:disabled{opacity:.35;cursor:default}
+  .row{display:flex;align-items:center;gap:10px;justify-content:center;margin:4px 0}
+  .lbl{width:3em}
+  #gain{position:fixed;inset:0;z-index:12;display:none;align-items:center;justify-content:center;background:#0009;cursor:pointer}
+  #gain div{background:#14120a;border:1px solid #6b6530;padding:22px 34px;text-align:center;max-width:340px}
+  #gain .ic{font-size:64px;line-height:1.2}#gain b{display:block;font-size:20px;margin:6px 0;color:#e8dc8a}#gain p{margin:6px 0;line-height:1.6}#gain small{color:#8a8450}
+  #panel{position:fixed;top:50%;right:4%;transform:translateY(-50%);background:#14120a;border:1px solid #6b6530;padding:4px 20px 12px;z-index:9;display:none;min-width:340px;max-height:80vh;overflow:auto}
+  #vaultBtn{position:fixed;top:78px;right:10px;display:none;margin:0}
+  #menu.title{background:radial-gradient(ellipse at 30% 50%,#000a 0,#000e 75%);justify-content:flex-start}
+  #menu.title .box{background:none;border:none;text-align:left;padding:0 0 0 8vw;margin:0}
+  #menu.title h1{font-size:clamp(40px,8vw,88px);letter-spacing:.12em;margin:0;color:#f3e98a;animation:flick 6s infinite}
+  @keyframes flick{0%,92%,100%{opacity:1}93%{opacity:.4}94%{opacity:1}96%{opacity:.6}97%{opacity:1}}
+  .sub{margin:4px 0 18px;opacity:.7;letter-spacing:.3em}
+  .chip{display:inline-block;border:1px solid #6b6530;padding:2px 12px;background:#0007}
+  .chip.big{font-size:18px;margin-bottom:18px}
+  .nav{display:flex;flex-direction:column;width:min(320px,80vw)}
+  .nav button{text-align:left;font-size:18px;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+  .nav button.primary{background:#5b5216;font-size:22px}
+  .nav button:hover:not(:disabled),.tabs button.on{background:#7a6f22}
+  .tag{font-size:11px;border:1px solid #6b6530;padding:1px 6px;opacity:.75;margin-left:8px}
+  .foot{opacity:.5;font-size:12px;margin-top:20px}
+  #menu.page .box{width:min(960px,92vw);text-align:left;background:#14120aee}
+  .head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+  .head h2{flex:1;margin:0}
+  .soon{border:1px dashed #6b6530;padding:6px 12px;color:#c9b84a;font-size:13px}
+  .slots{display:flex;flex-wrap:wrap;gap:10px;margin:10px 0}
+  .slot{width:96px;height:96px;border:1px dashed #6b6530;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.6;font-size:13px;text-align:center}
+  .slot.full{border-style:solid;opacity:1;background:#2a2610}
+  .slot.r-傳說{border-color:#f3b84a;color:#f3b84a}.slot.r-稀有{border-color:#8ab4f0;color:#8ab4f0}
+  .banner{border:1px solid #6b6530;padding:4px 14px;margin:10px 0;background:#1d1a0d}
+  .cols{display:flex;gap:16px;flex-wrap:wrap}.cols>div{flex:1;min-width:200px}
+  .node{border:1px solid #6b6530;padding:4px 10px 8px;margin:6px 0;background:#1d1a0d}.node p{margin:4px 0;font-size:13px}
+  .tabs{margin-bottom:6px}
+</style>
+</head>
+<body>
+<div id="stats"></div>
+<div id="tip">點物件互動，點窗戶、門、走廊離開<br>沒有出口時才按空白鍵往前走<br>滑鼠：晃動視角</div>
+<div id="hover"></div>
+<button id="next">往前走 ▶</button><div id="prog"></div>
+<div id="log"></div>
+<button id="vaultBtn">背包 / 靈魂保險箱</button>
+<div id="panel"></div>
+<div id="gain"></div>
+<div id="menu"></div>
+<script src="three.min.js"></script>
+<script>
+// ---------- 資料、存檔、一輪冒險的狀態 ----------
+const STATS = {STR:'力量', DEX:'敏捷', WIS:'感知', INT:'智慧', CHA:'魅力', CON:'體質'};
+const BASE = 10, CAP = 18, WIN_BONUS = 30;
+const META_KEY = 'backrooms_meta_v1';
+let CHARS, ITEMS, UPGRADES, LEVEL0;
+const up = id => meta.up[id]||0;
+const slotCount = () => 3 + up('slots');
+let meta = {remnant:0, unlocked:[], vault:[], up:{}, pack:[], runs:0}; // 局外成長，存在 localStorage
+let R = null;     // 這一輪冒險（死亡或結局就丟掉）；null = 在選單中
+let draft = null; // 角色創建中的暫存
+
+const $ = id => document.getElementById(id);
+const d = n => 1 + Math.floor(Math.random()*n);
+function log(msg, cls='sys'){
+  const p = document.createElement('p'); p.className = cls; p.textContent = msg;
+  $('log').appendChild(p); $('log').scrollTop = 1e9;
+}
+function loadMeta(){ try{ Object.assign(meta, JSON.parse(localStorage.getItem(META_KEY))); }catch(e){} }
+function saveMeta(){ try{ localStorage.setItem(META_KEY, JSON.stringify(meta)); }catch(e){ log('無法存檔（瀏覽器封鎖了本機儲存）','bad'); } }
+const sanMax = s => Math.floor((s.CON + s.WIS) * 2.5) + 5*up('san');
+const itemName = id => ITEMS[id]?.name || id;
+// 獲得物品：加進背包、記一行、跳出外觀/名字/用途視窗（點一下或按鍵關閉；連續獲得會排隊）
+const gainQ = [];
+function gain(id){
+  R.inv.push(id); log(`獲得：${itemName(id)}`,'ok');
+  gainQ.push(id); if(gainQ.length===1) showGain();
+}
+function showGain(){
+  const id = gainQ[0], it = ITEMS[id], g = $('gain');
+  g.innerHTML = `<div><div class="ic">${it.icon||'🎒'}</div><b>${it.name}</b><p>${it.desc||''}</p><small>價值 ${it.value} R　·　點一下關閉</small></div>`;
+  g.style.display = 'flex';
+}
+function closeGain(){ gainQ.shift(); if(gainQ.length) showGain(); else $('gain').style.display='none'; }
+$('gain').onclick = closeGain;
+addEventListener('keydown', e=>{ if(gainQ.length){ e.stopImmediatePropagation(); if(['Space','Escape','Enter'].includes(e.code)) closeGain(); } }, true);
+
+function renderStats(){
+  if(!R) return;
+  $('stats').innerHTML = `<b style="width:auto">${R.char.name}</b><br>`
+    + Object.entries(STATS).map(([k,n])=>`<b>${n}</b>${R.stats[k]}`).join('<br>')
+    + `<br><b>SAN</b>${R.san}/${R.sanMax}`
+    + (R.char.ability ? `<br>✦ ${R.char.ability.name}` : '')
+    + (R.rerollMax ? `<br>重擲 ${R.rerolls}/${R.rerollMax}` : '');
+}
+
+// d100 ≤ 值×5 成功；≤一半 困難成功；≤五分之一 極限成功；≥96 且未成功為大失敗
+function roll(stat){
+  const target = R.stats[stat]*5 + 3*up('bonus') + R.inv.reduce((n,id)=>n+(ITEMS[id].passive?.[stat]||0),0), r = d(100), ok = r<=target;
+  const level = r<=target/5 ? '極限成功' : r<=target/2 ? '困難成功' : ok ? '成功' : r>=96 ? '大失敗' : '失敗';
+  log(`【${STATS[stat]} 檢定】擲 ${r} / ${target} → ${level}`, ok?'ok':'bad');
+  return ok;
+}
+function check(stat){
+  if(roll(stat)) return true;
+  if(R.rerolls<=0) return false;
+  R.rerolls--; renderStats();
+  log('使用重擲');
+  return roll(stat);
+}
+
+// ---------- 背包 / 靈魂保險箱面板（冒險中） ----------
+function renderPanel(){
+  const row = (id,i,act,label)=>`<div class="row" title="${ITEMS[id].desc||''}">${itemName(id)} <small>(${ITEMS[id].value} R)</small>`
+    + (ITEMS[id].use && act==='toVault' ? `<button data-act="use" data-arg="${i}">使用</button>` : '')
+    + `<button data-act="${act}" data-arg="${i}">${label}</button></div>`;
+  $('panel').innerHTML = `<h3>背包 <small>（冒險結束時會被換成 Remnant）</small></h3>`
+    + (R.inv.map((id,i)=>row(id,i,'toVault','放進保險箱')).join('') || '<p>空的</p>')
+    + `<h3>靈魂保險箱 ${R.vault.length}/${slotCount()} <small>（一定帶得出去）</small></h3>`
+    + (R.vault.map((id,i)=>row(id,i,'toInv','拿出來')).join('') || '<p>空的</p>')
+    + `<button data-act="close">關閉</button>`;
+}
+function syncVault(){ meta.vault = [...R.vault]; saveMeta(); renderPanel(); } // 保險箱一有變動就存檔
+const panelActs = {
+  toVault(i){ if(R.vault.length>=slotCount()) return log('保險箱滿了。','bad'); R.vault.push(R.inv.splice(i,1)[0]); syncVault(); },
+  toInv(i){ R.inv.push(R.vault.splice(i,1)[0]); syncVault(); },
+  use(i){
+    const id = R.inv.splice(i,1)[0], u = ITEMS[id].use;
+    if(u.san){ R.san = Math.min(R.sanMax, R.san+u.san); log(`使用${itemName(id)}，SAN +${u.san}`,'ok'); }
+    if(u.stat){ R.stats[u.stat] += u.plus; log(`使用${itemName(id)}，${STATS[u.stat]} +${u.plus}（本局）`,'ok'); }
+    renderStats(); renderPanel();
+  },
+  close(){ shopCtx = null; $('panel').style.display='none'; unfocus(); },
+  shopBuy(i){
+    const {def, obj} = shopCtx, o = def.offers[i];
+    if(!afford(o, obj) || obj.used?.[def.title+i]) return;
+    for(const id of price(o, obj)) R.inv.splice(R.inv.indexOf(id), 1);
+    if(o.san){ R.san -= o.san; log(`SAN -${o.san}`,'bad'); renderStats(); }
+    for(const id of [].concat(o.get||[])) gain(id);
+    if(o.once) (obj.used ??= {})[def.title+i] = true; // 以商店名分開記，同一個物件串到別的商店時不會互相干擾
+    const left = o.do && run(o.do, obj) === false; // 換關或結局
+    if(!R) return; // 理智歸零，endRun 已收尾
+    left || obj.done ? panelActs.close() : renderShop();
+  },
+  haggle(){
+    const {def, obj} = shopCtx; obj.haggled = true;
+    if(check(def.haggle)){ obj.cheap = true; log('他嘆口氣，把價錢往下壓了一些。','ok'); } else log('他不為所動。','bad');
+    renderShop();
+  }
+};
+
+// ---------- 商人：offers 是「付出 → 得到」的清單，pay 是道具、san 是理智，do 是額外動作 ----------
+let shopCtx = null; // {def, obj}：目前開著的商店與那個商人物件（議價、一次性交易記在物件上）
+const price = (o, obj) => (obj.cheap && o.payCheap) || o.pay || [];
+const afford = (o, obj) => { const p = price(o, obj); return p.every(id=>R.inv.filter(x=>x===id).length >= p.filter(x=>x===id).length) && R.san > (o.san||0); };
+const bundle = ids => Object.entries(ids.reduce((m,id)=>(m[id]=(m[id]||0)+1, m), {})).map(([id,n])=>itemName(id)+(n>1?`×${n}`:'')).join('、');
+function openShop(id, obj){ shopCtx = {def: LEVEL0.shops[id], obj}; renderShop(); $('panel').style.display = 'block'; }
+function renderShop(){
+  const {def, obj} = shopCtx;
+  $('panel').innerHTML = `<h3>${def.title}</h3><p>${def.say||''}</p>`
+    + def.offers.map((o,i)=>`<div class="row"><span>${o.label || `${bundle([].concat(o.get))} ← ${[bundle(price(o,obj)), o.san ? `SAN -${o.san}` : ''].filter(Boolean).join('、')}`}</span>`
+        + `<button data-act="shopBuy" data-arg="${i}" ${obj.used?.[def.title+i] || !afford(o,obj) ? 'disabled' : ''}>${o.get||o.pay||o.san ? '成交' : '選擇'}</button></div>`).join('')
+    + (def.haggle && !obj.haggled ? `<button data-act="haggle">討價還價（${STATS[def.haggle]}）</button>` : '')
+    + `<button data-act="close">離開</button>`;
+}
+// 情報：還要幾個房間才到出口，以及下一個房間裡有什麼
+function routeHint(){
+  const left = level.stages.length - 1 - stageIdx;
+  log(left>0 ? `他低聲說：「再往前走 ${left} 間就是出口。下一間裡有${level.stages[stageIdx+1].name}。」` : '他搖搖頭：「出口就在你眼前。」', 'ok');
+}
+$('panel').onclick = e=>{ const b=e.target.closest('[data-act]'); if(b) panelActs[b.dataset.act](+b.dataset.arg); };
+$('vaultBtn').onclick = ()=>{ shopCtx = null; renderPanel(); $('panel').style.display='block'; };
+
+// ---------- 選單：主畫面 / 選角 / 分配屬性 / 結算 ----------
+const menu = $('menu');
+const screen = (html, cls='') => { menu.className = cls; menu.innerHTML = `<div class="box">${html}</div>`; menu.style.display='flex'; };
+const page = (title, body) => screen(`<div class="head"><button data-act="title">← 返回</button><h2>${title}</h2><span class="chip">◈ ${meta.remnant}</span></div>${body}`, 'page');
+const soon = '<p class="soon">施工中：目前只有介面，內容尚未開放。</p>';
+const emptySlot = t => `<div class="slot">${t}</div>`;
+const slots = (n, cell) => `<div class="slots">${Array.from({length:n}, (_,i)=>cell(i)).join('')}</div>`;
+const statLine = s => Object.entries(STATS).map(([k,n])=>`${n} ${s[k]}`).join('　');
+const abilityText = a => a ? `✦ ${a.name}：${a.desc}` : '無特殊能力';
+const flat = () => Object.fromEntries(Object.keys(STATS).map(k=>[k,BASE]));
+
+const itemCards = () => `<p>購買的補給會在下一次冒險開局放進背包（沒用掉的會在結算時換成 Remnant）。已預購：${meta.pack.map(itemName).join('、') || '無'}</p><div class="cards">`
+  + Object.entries(ITEMS).filter(([,it])=>it.price).map(([id,it])=>`<div class="card"><h3>${it.name}</h3><p>${it.desc}</p><p>結算價值 ${it.value} ◈</p>`
+      + `<button data-act="buyItem" data-arg="${id}" ${meta.remnant<it.price?'disabled':''}>購買（${it.price} ◈）</button></div>`).join('') + '</div>';
+const charCards = pickable => [{id:'custom', ...CHARS.custom}, ...CHARS.presets].map(c=>{
+  const own = !c.cost || meta.unlocked.includes(c.id), s = c.stats || flat();
+  return `<div class="card"><h3>${c.name}</h3><p>${c.desc}</p><p>${statLine(s)}</p>`
+    + `<p>屬性總和 ${Object.values(s).reduce((a,b)=>a+b,0)} ＋ 自由點數 ${c.pool}</p><p>${abilityText(c.ability)}</p>`
+    + (own ? (pickable ? `<button data-act="pick" data-arg="${c.id}">選擇</button>` : '<span class="tag">已擁有</span>')
+           : `<button data-act="buy" data-arg="${c.id}" ${meta.remnant<c.cost?'disabled':''}>解鎖（${c.cost} ◈）</button>`) + `</div>`;
+}).join('');
+
+const menuActs = {
+  title(){
+    screen(`<h1>BACKROOMS</h1><p class="sub">Level 0 · 黃色房間</p><div class="chip big">◈ ${meta.remnant} Remnant</div>
+      <div class="nav">
+        <button class="primary" data-act="select">開始冒險</button>
+        <button data-act="shop">商店</button>
+        <button data-act="gacha">抽獎<span class="tag">施工中</span></button>
+        <button data-act="upgrades">永久強化</button>
+        <button data-act="vaultView">靈魂保險箱<span class="tag">${meta.vault.length}/${slotCount()}</span></button>
+        <button data-act="settings">設定</button>
+      </div><p class="foot">雛形 v0.1 · 已冒險 ${meta.runs} 次<br>Level 0 的設定取材自 The Backrooms Wiki（backrooms-wiki.wikidot.com，CC BY-SA 3.0）</p>`, 'title');
+    if(!level) loadLevel(genLevel0(LEVEL0)); // 首頁背景：直接拿第一關當場景
+  },
+  select(){ page('選擇角色', `<div class="cards">${charCards(true)}</div>`); },
+  shop(tab='supply'){
+    const tabs = [['supply','補給'],['chars','角色']].map(([k,n])=>`<button data-act="shop" data-arg="${k}" class="${k===tab?'on':''}">${n}</button>`).join('');
+    page('商店', `<div class="tabs">${tabs}</div>` + (tab==='chars'
+      ? `<div class="cards">${charCards(false)}</div>`
+      : itemCards()));
+  },
+  gacha(){
+    page('抽獎', soon + `<div class="banner"><h3>常駐祈願</h3><p>獎池（暫定）：角色、補給、永久強化素材</p><p>保底進度：0 / 50</p></div>`
+      + `<div class="slots">${['傳說','稀有','稀有','普通','普通'].map(r=>`<div class="slot r-${r}">${r}<small>？？？</small></div>`).join('')}</div>`
+      + `<div class="row"><button disabled>抽 1 次（50 ◈）</button><button disabled>抽 10 次（450 ◈）</button></div>`);
+  },
+  upgrades(){
+    const cats = [...new Set(UPGRADES.map(u=>u.cat))];
+    page('永久強化', `<div class="cols">${cats.map(c=>`<div><h3>${c}</h3>${UPGRADES.filter(u=>u.cat===c).map(u=>{
+      const lv = up(u.id), max = u.costs.length, cost = u.costs[lv];
+      return `<div class="node"><b>${u.name}</b> <small>Lv ${lv}/${max}</small><p>${u.desc}</p>`
+        + (lv>=max ? '<span class="tag">已滿級</span>' : `<button data-act="upgrade" data-arg="${u.id}" ${meta.remnant<cost?'disabled':''}>升級（${cost} ◈）</button>`) + '</div>';
+    }).join('')}</div>`).join('')}</div>`);
+  },
+  upgrade(id){
+    const u = UPGRADES.find(u=>u.id===id), cost = u.costs[up(id)];
+    if(cost===undefined || meta.remnant<cost) return;
+    meta.remnant -= cost; meta.up[id] = up(id)+1; saveMeta(); menuActs.upgrades();
+  },
+  vaultView(){
+    page('靈魂保險箱', `<p>冒險中放進保險箱的物品，無論死亡或結局都會帶出來。其他物品會被換成 Remnant。</p>`
+      + slots(slotCount(), i=> meta.vault[i] ? `<div class="slot full">${itemName(meta.vault[i])}</div>` : emptySlot('空')));
+  },
+  settings(){
+    page('設定', soon + `<div class="row"><span class="lbl">音量</span><input type="range" disabled></div>
+      <div class="row"><span class="lbl">視角晃動</span><input type="range" disabled></div>
+      <div class="row"><button disabled>匯出存檔</button><button disabled>匯入存檔</button><button data-act="reset">清除存檔</button></div>`);
+  },
+  reset(){ if(confirm('確定清除所有存檔？')){ meta = {remnant:0, unlocked:[], vault:[], up:{}, pack:[], runs:0}; saveMeta(); } menuActs.title(); },
+  buyItem(id){ const it = ITEMS[id]; if(meta.remnant<it.price) return;
+               meta.remnant -= it.price; meta.pack.push(id); saveMeta(); menuActs.shop('supply'); },
+  buy(id){ const c = CHARS.presets.find(c=>c.id===id); if(meta.remnant<c.cost) return;
+           meta.remnant -= c.cost; meta.unlocked.push(id); saveMeta(); menu.querySelector('.tabs') ? menuActs.shop('chars') : menuActs.select(); },
+  pick(id){
+    const c = id==='custom' ? {...CHARS.custom, id} : CHARS.presets.find(c=>c.id===id), base = c.stats ? {...c.stats} : flat();
+    draft = {char:c, base, stats:{...base}, pool:c.pool}; menuActs.alloc();
+  },
+  adj(arg){
+    const [k,n] = arg.split(':'), v = draft.stats[k]+ +n;
+    if(v<draft.base[k] || v>CAP || draft.pool-n<0) return;
+    draft.stats[k] = v; draft.pool -= n; menuActs.alloc();
+  },
+  alloc(){
+    const s = draft.stats;
+    screen(`<h2>${draft.char.name}　分配屬性</h2><p>剩餘自由點數：<b>${draft.pool}</b>（單項上限 ${CAP}，不能低於起始值）</p>`
+      + Object.entries(STATS).map(([k,n])=>`<div class="row"><span class="lbl">${n}</span>`
+          + `<button data-act="adj" data-arg="${k}:-1" ${s[k]<=draft.base[k]?'disabled':''}>−</button><b>${s[k]}</b>`
+          + `<button data-act="adj" data-arg="${k}:1" ${draft.pool<1||s[k]>=CAP?'disabled':''}>＋</button><small>檢定成功率 ${s[k]*5}%</small></div>`).join('')
+      + `<p>SAN 上限：${sanMax(s)}（(體質＋感知)×2.5）</p><p>${abilityText(draft.char.ability)}</p><p>預購補給：${meta.pack.map(itemName).join('、') || '無'}</p>`
+      + `<button data-act="select">返回</button><button data-act="start">開始冒險</button>`);
+  },
+  start(){
+    const c = draft.char, s = draft.stats;
+    R = {char:c, stats:s, san:sanMax(s), sanMax:sanMax(s), rerolls:0, inv:[...(c.ability?.startItems||[]), ...Array(up('supply')).fill('almond'), ...meta.pack], vault:[...meta.vault], flags:{}, hint:up('hint')>0};
+    meta.pack = []; saveMeta();
+    R.rerolls = R.rerollMax = (c.ability?.reroll||0) + up('reroll');
+    $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
+    renderStats(); loadLevel(genLevel0(LEVEL0));
+  }
+};
+menu.onclick = e=>{ const b=e.target.closest('[data-act]'); if(b) menuActs[b.dataset.act](b.dataset.arg); };
+
+// 結局或死亡：背包換成 Remnant，保險箱原樣留著
+function endRun(kind, text){
+  const gain = R.inv.reduce((n,id)=>n+ITEMS[id].value, 0) + (kind==='win' ? WIN_BONUS : 0);
+  const lost = R.inv.map(itemName), kept = R.vault.map(itemName);
+  meta.remnant += gain; meta.vault = [...R.vault]; meta.runs++; saveMeta();
+  R = null; $('vaultBtn').style.display = 'none'; $('panel').style.display = 'none'; $('next').style.display = 'none'; $('prog').textContent = ''; unfocus();
+  screen(`<h2>${kind==='win' ? text || '你穿過了閃爍的牆' : '你的理智崩潰了'}</h2>`
+    + `<p>換成 Remnant 的物品：${lost.join('、') || '無'}${kind==='win' ? `（通關獎勵 +${WIN_BONUS}）` : ''}</p>`
+    + `<p>獲得 <b>${gain}</b> Remnant，目前共 ${meta.remnant}</p><p>帶出的靈魂保險箱：${kept.join('、') || '空'}</p>`
+    + `<button data-act="title">回到主選單</button>`);
+}
+
+// ---------- 事件執行器：關卡 JSON 的 onClick 就是動作清單 ----------
+// 動作：say / check(ok,fail) / san+why / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
+function run(actions, obj){
+  for(const a of actions){
+    if(a.say) log(a.say, a.cls);
+    if(a.check){ if(run(check(a.check) ? a.ok||[] : a.fail||[], obj)===false) return false; }
+    if(a.san){
+      const n = Math.max(1, d(a.san) - (R.char.ability?.sanReduce||0));
+      R.san = Math.max(0, R.san-n); log(`${a.why||''}　SAN -${n}`,'bad'); renderStats();
+      if(R.san===0){ endRun('death'); return false; }
+    }
+    if(a.give) gain(a.give);
+    if(a.need && ![].concat(a.need).some(id=>R.inv.includes(id))){ run(a.else||[], obj); return false; }
+    if(a.rand && run(weighted(a.rand).do, obj)===false) return false;
+    if(a.ifHas && run(R.inv.includes(a.ifHas) ? a.then||[] : a.else||[], obj)===false) return false;
+    if(a.take) R.inv.splice(R.inv.indexOf(a.take),1);
+    if(a.set) R.flags[a.set] = true;
+    if(a.heal){ R.san = Math.min(R.sanMax, R.san+a.heal); log(`SAN +${a.heal}`,'ok'); renderStats(); }
+    if(a.route) routeHint();
+    if(a.shop) openShop(a.shop, obj);
+    if(a.ifFlag && run(R.flags[a.ifFlag] ? a.then||[] : a.else||[], obj)===false) return false;
+    if(a.done) obj.done = true;
+    if(a.lose && R.inv.length){ const [id] = R.inv.splice(Math.floor(Math.random()*R.inv.length), 1); log(`${itemName(id)}不見了。`,'bad'); }
+    if(a.haunt) R.haunt = a.haunt; // 接下來幾次換房間，每次 SAN -1
+    if(a.detour && level.more){ level.stages.splice(stageIdx+1, 0, ...level.more(a.detour)); updateProg(); } // 多繞 n 個房間
+    if(a.warp){ // 被傳走：跳過下一個房間（出口那間不能跳）
+      if(stageIdx+2 < level.stages.length) level.stages.splice(stageIdx+1, 1);
+      advance(); return false;
+    }
+    if(a.advance){ advance(); return false; } // 爬過窗戶、推開門
+    if(a.path !== undefined){ level.stages[stageIdx+1] = level.stages[stageIdx].paths[a.path]; advance(); return false; } // 岔路口選一條
+    if(a.peek) log(`那一頭是：${level.stages[stageIdx+1].name}。`,'ok');
+    if(a.lit) R.lit = a.lit; // 接下來幾次事件不抽停電類（events 裡標 dark 的）
+    if(a.goto){ loadLevel(LEVEL0.stubs?.[a.goto] ? stubLevel(LEVEL0.stubs[a.goto]) : a.goto); return false; }
+    if(a.end){ endRun(a.end, a.text); return false; }
+  }
+}
+
+// ---------- 場景 ----------
+const H = 3, EYE = 1.6;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1808);
+scene.fog = new THREE.Fog(0x1a1808, 2, 16);
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, .1, 60);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+
+// 全場只有兩盞燈（環境光＋跟著攝影機的點光），亮度靠這個，不再每盞日光燈各放一盞 PointLight
+const amb = new THREE.AmbientLight(0x665a28, .9); scene.add(amb);
+const lamp = new THREE.PointLight(0xfff0b0, 1, 14); scene.add(lamp);
+
+function tex(draw, rx, ry){
+  const c=document.createElement('canvas'); c.width=c.height=128;
+  draw(c.getContext('2d')); const t=new THREE.CanvasTexture(c);
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(rx,ry); return t;
+}
+// 貼圖全關共用，換關時不釋放
+const wallTex = tex(g=>{ g.fillStyle='#c9b84a'; g.fillRect(0,0,128,128);
+  g.fillStyle='#b5a53d'; for(let x=0;x<128;x+=16) g.fillRect(x,0,6,128);
+  for(let i=0;i<300;i++){g.fillStyle=`rgba(80,70,20,${Math.random()*.15})`;g.fillRect(Math.random()*128,Math.random()*128,2,2);} },1,1);
+const floorTex = tex(g=>{ g.fillStyle='#6e6330'; g.fillRect(0,0,128,128);
+  for(let i=0;i<2500;i++){g.fillStyle=`rgba(${Math.random()<.5?'20,18,0':'150,140,70'},${Math.random()*.25})`;g.fillRect(Math.random()*128,Math.random()*128,2,2);} },1,1);
+const ceilTex = tex(g=>{ g.fillStyle='#b8ad78'; g.fillRect(0,0,128,128); g.strokeStyle='#8a8052'; g.strokeRect(0,0,128,128); },1,1);
+const lightMat = new THREE.MeshBasicMaterial({color:0xfff6c8});
+
+// ---------- 關卡 = 一串房間：玩家站在原地，往前走就換下一個房間，不能回頭 ----------
+const cache = {};
+let group = null, level = null, stageIdx = 0, interactables = [], flickers = [], busy = false;
+const choice = a => a[Math.floor(Math.random()*a.length)];
+function weighted(list){ let r = Math.random()*list.reduce((n,x)=>n+x.w,0); for(const x of list) if((r-=x.w)<0) return x; return list[list.length-1]; }
+
+async function fetchLevel(id){
+  if(!cache[id]){
+    const r = await fetch(`levels/${id}.json`);
+    if(!r.ok) throw new Error(id);
+    cache[id] = await r.json();
+  }
+  return cache[id];
+}
+function unload(){
+  if(!group) return;
+  scene.remove(group);
+  group.traverse(o=>{ o.geometry?.dispose(); if(o.material && o.material!==lightMat) [].concat(o.material).forEach(m=>{ m.map?.dispose(); m.dispose(); }); });
+  interactables = []; flickers = [];
+}
+function tiled(map, w, h, tint=0xffffff){ // 同一張貼圖依尺寸重複，tint 把整面染色
+  const m = new THREE.MeshLambertMaterial({map: map.clone(), color: tint});
+  m.map.needsUpdate = true; m.map.repeat.set(Math.max(1,Math.round(w/2)), Math.max(1,Math.round(h/2)));
+  return m;
+}
+
+// 房間外觀：只影響畫面（牆紙色、霧、環境光、燈的數量），不影響事件
+const THEMES = [
+  {bg:0x1a1808, wall:0xffffff, floor:0xffffff, ceil:0xffffff, fogN:2,   fogF:14, amb:0x665a28, lamp:0xfff0b0, lights:[1,3]}, // 標準黃
+  {bg:0x0c1612, wall:0xa8c8a8, floor:0x9ab09a, ceil:0xb0c0a8, fogN:1.5, fogF:11, amb:0x3a5a48, lamp:0xd8f0d0, lights:[0,2]}, // 發霉偏綠
+  {bg:0x1a0a08, wall:0xe0a090, floor:0xc08070, ceil:0xd09888, fogN:1.5, fogF:10, amb:0x6a3028, lamp:0xffc0a0, lights:[1,2]}, // 偏紅
+  {bg:0x12141a, wall:0xb0b8c4, floor:0x9098a0, ceil:0xc0c8d0, fogN:2,   fogF:13, amb:0x484e5c, lamp:0xe0eaff, lights:[2,4]}, // 灰藍辦公室
+  {bg:0x08080a, wall:0x8a8060, floor:0x706850, ceil:0x807858, fogN:1,   fogF:8,  amb:0x2a2614, lamp:0xffe8a0, lights:[0,1]}  // 昏暗
+];
+
+// 建立第 i 個房間。座標：玩家在 (0,0) 面向 -z，正前方是北牆（z=-D），背後留 2.4 公尺
+function buildStage(i){
+  unload();
+  const s = level.stages[i], [W, D] = s.size, T = THEMES[s.theme], BACK = 2.4, L = D + BACK, mid = (BACK-D)/2;
+  group = new THREE.Group(); scene.add(group);
+  scene.background.setHex(T.bg); scene.fog.color.setHex(T.bg); scene.fog.near = T.fogN; scene.fog.far = T.fogF;
+  amb.color.setHex(T.amb); lamp.color.setHex(T.lamp);
+  const box = (x,y,z,w,h,d,mat)=>{ const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat); m.position.set(x,y,z); group.add(m); return m; };
+  const flat = (w,d,mat,y,rx)=>{ const m = new THREE.Mesh(new THREE.PlaneGeometry(w,d), mat); m.rotation.x = rx; m.position.set(0,y,mid); group.add(m); };
+  flat(W, L, tiled(floorTex,W,L,T.floor), 0, -Math.PI/2);
+  flat(W, L, tiled(ceilTex,W,L,T.ceil), H, Math.PI/2);
+  box(0, H/2, -D-.15, W+.6, H, .3, tiled(wallTex,W,H,T.wall));
+  box(0, H/2, BACK+.15, W+.6, H, .3, tiled(wallTex,W,H,T.wall));
+  box(-W/2-.15, H/2, mid, .3, H, L, tiled(wallTex,L,H,T.wall));
+  box(W/2+.15, H/2, mid, .3, H, L, tiled(wallTex,L,H,T.wall));
+  const n = T.lights[0] + Math.floor(Math.random()*(T.lights[1]-T.lights[0]+1));
+  for(let k=0;k<n;k++) box((Math.random()-.5)*W*.6, H-.03, -D+.8+Math.random()*(L-1.6), 1.6, .05, .5, lightMat);
+  for(const dc of s.decor) box(dc.pos[0], dc.y ?? dc.size[1]/2, dc.pos[1], ...dc.size, new (dc.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:dc.color}));
+  for(const o of s.objects){
+    const [w,h,dd] = o.size;
+    const m = box(o.pos[0], o.y ?? h/2, o.pos[1], w, h, dd, new (o.flicker || o.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:o.color}));
+    if(o.flicker) flickers.push(m);
+    m.userData = {spec:o, name:o.name}; interactables.push(m);
+  }
+}
+
+async function loadLevel(id){ // id 可以是 levels/ 底下的檔名，或直接傳產生好的關卡物件
+  if(typeof id==='string') log('載入中……');
+  try{ level = typeof id==='string' ? await fetchLevel(id) : id; }
+  catch(e){ return log(`載入 levels/${id}.json 失敗。請用 http 伺服器開啟，不要直接開檔案。`,'bad'); }
+  if(level.intro) log(level.intro);
+  enterStage(0, true);
+}
+const updateProg = () => { $('prog').textContent = R ? `${level.name}　${stageIdx+1} / ${level.stages.length}` : ''; };
+function enterStage(i, quiet){
+  stageIdx = i; focusOn = false; focusF = 0; clearTimeout(focusTimer); const s = level.stages[i];
+  if(i < level.stages.length-1) prepare(s, i);
+  buildStage(i);
+  $('next').style.display = R && i < level.stages.length-1 && !s.exit && !s.fork ? 'block' : 'none';
+  updateProg();
+  if(!R || quiet) return;
+  $('log').innerHTML = ''; // 視覺小說式：文字框只留這個房間的字
+  if(R.haunt>0){ R.haunt--; if(run([{san:1, why:'那顆眼睛的視線還黏在你背上。'}])===false) return; }
+  if(level.events && Math.random() < level.enterChance){
+    const pool = R.lit>0 ? level.events.filter(e=>!e.dark) : level.events;
+    if(R.lit>0) R.lit--;
+    if(run(weighted(pool).do, {})===false) return;
+  }
+  if(level.events && R.flags.marked && Math.random() < .3) run(LEVEL0.marked, {}); // 被無臉服務生標記後，常有東西跟著
+}
+
+// ---------- Level 0：隨機排出一串房間，最後一間是出口 ----------
+// cfg.stages 房間總數；cfg.forks 其中幾間是岔路口；cfg.plan 指定第幾間要抽哪一類；cfg.noTransitionBefore 前幾間不抽換層事件。同一個事件一局只出現一次
+// 每個事件房間隨機配一種出路：plain 沒有特別的出口（才顯示「往前走」）、window 窗戶、door 門
+const lampOf = th => '#' + THEMES[th].lamp.toString(16).padStart(6,'0');
+function genLevel0(cfg){
+  const used = new Set(), stages = []; let lastTheme = -1, pending = null;
+  const draw = cat => {
+    const fit = cfg.objects.filter(t=>!used.has(t.name) && (!cat || t.cat===cat) && !(t.cat==='換層' && stages.length < cfg.noTransitionBefore));
+    if(!fit.length) return cat ? draw() : null;
+    const t = weighted(fit); used.add(t.name); return t;
+  };
+  const room = wide => {
+    let th; do th = Math.floor(Math.random()*THEMES.length); while(th===lastTheme); lastTheme = th;
+    return {theme:th, size:[(wide?6.6:4)+Math.random()*(wide?1.4:4), 2+Math.random()*.4], decor:[], objects:[]};
+  };
+  const makeStage = (spec, kind = choice(['plain','plain','window','window','door'])) => {
+    const s = room(kind!=='plain'), [W,D] = s.size, thin = spec.size[0] < .3, off = D - (thin ? .15 : .5);
+    const x = (Math.random()*2-1) * Math.max(0, W/2-1.8), {w, where, cat, props, ...t} = spec;
+    s.name = t.name; s.cat = cat;
+    s.objects.push({...t, size: thin ? [t.size[2],t.size[1],t.size[0]] : t.size, pos:[x,-off]}); // 貼著北牆；薄板轉成東西向
+    for(const p of props||[]) s.decor.push({pos:[x+p.at[0], -off+p.at[1]], size:p.size, color:p.color, y:p.y, glow:p.glow});
+    if(kind!=='plain'){ s.exit = kind; s.exitX = (x>.2 ? -1 : x<-.2 ? 1 : Math.random()<.5 ? -1 : 1) * (W/2-1.1); } // 出口放在事件物件的另一側
+    if(W>5.5 && Math.random()<.5) for(const sx of [-1,1]) s.decor.push({pos:[sx*(W/2-.5), -.5-Math.random()*(D-1)], size:[.5,H,.5], color:'#b5a53d'});
+    if(Math.random()<.5) s.decor.push({pos:[(Math.random()-.5)*W*.5, -.6-Math.random()*(D-1.2)], size:[2.2,.02,2.2], color:'#2a3c3c'});
+    return s;
+  };
+  // 岔路口：n 條走廊並排，中間用隔牆分開，點哪條就走哪條
+  const forkStage = () => {
+    const s = room(true), n = 2 + Math.floor(Math.random()*2), D = s.size[1];
+    s.size[0] = Math.max(s.size[0], 7); s.fork = n; s.name = '一個岔路口';
+    for(let i=0; i<n-1; i++) s.decor.push({pos:[(i+1-n/2)*2.3, -D+(D+.2)/2], size:[.2,H,D+.2], color:'#a89a35'});
+    return s;
+  };
+  const N = cfg.stages, forkAt = new Set();
+  for(let k=0; k<(cfg.forks||0); k++) for(let tries=0; tries<20; tries++){
+    const i = 1 + Math.floor(Math.random()*(N-3)); // 岔路口後面一定還有一個事件房間，不會緊貼出口
+    if(!forkAt.has(i) && !forkAt.has(i-1) && !forkAt.has(i+1)){ forkAt.add(i); break; }
+  }
+  for(let i=0; i<N-1; i++){
+    if(forkAt.has(i)){ stages.push(forkStage()); if(cfg.plan?.[i]) pending = cfg.plan[i]; continue; }
+    const cat = cfg.plan?.[i] || pending; pending = null;
+    stages.push(makeStage(draw(cat) || draw()));
+  }
+  const ex = room(), [W,D] = ex.size;
+  ex.name = cfg.exit.name;
+  ex.objects.push({...cfg.exit, pos:[(Math.random()*2-1)*Math.max(0,W/2-1.8), -(D-.12)], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
+  stages.push(ex);
+  const fresh = () => draw() || (used.clear(), draw());
+  return {name:'Level 0', intro:cfg.intro, stages, events:cfg.events, enterChance:cfg.enterChance,
+    more: n => Array.from({length:n}, ()=>makeStage(fresh())), // 繞路多出來的房間、岔路口的其他選項
+    hints: cfg.pathHints};
+}
+
+// 進房間前補上要靠「下一個房間」才能決定的東西：窗戶玻璃的顏色、岔路口各條路通往哪
+function prepare(s, i){
+  const next = level.stages[i+1], [W,D] = s.size;
+  if(s.exit && !s.exitMade){
+    s.exitMade = true;
+    const win = s.exit==='window', w = win ? 1.1 : 1.0, h = win ? 1.2 : 2.2, y = win ? 1.5 : h/2;
+    s.objects.push({name: win ? '形狀有點怪異的窗戶' : '一扇不自然的門', pos:[s.exitX,-D+.07], size:[w,h,.12], y, color: win ? lampOf(next.theme) : '#6a5a3a', glow: win,
+      onClick:[{say: win ? '牆上有一扇窗，形狀不太對，玻璃另一邊是模糊的光。' : '牆上有一扇門，門縫裡沒有光，也沒有聲音。'}, {shop: win ? 'window' : 'door'}]});
+    for(const [dx,dy,fw,fh] of [[0,h/2+.05,w+.3,.1],[0,-h/2-.05,w+.3,.1],[-w/2-.05,0,.1,h],[w/2+.05,0,.1,h]])
+      s.decor.push({pos:[s.exitX+dx,-D+.08], size:[fw,fh,.14], y:y+dy, color:'#2a2418'});
+  }
+  if(s.fork && !s.paths){
+    const n = s.fork, paths = [next, ...level.more(n-1)].sort(()=>Math.random()-.5), label = n===2 ? ['左邊','右邊'] : ['左邊','中間','右邊'];
+    s.paths = paths;
+    paths.forEach((p,k)=>{
+      const cat = p.cat, pool = level.hints[cat] || level.hints['其他'];
+      s.objects.push({name:`${label[k]}的走廊：${choice(pool)}`, pos:[(k-(n-1)/2)*2.3,-D+.07], size:[1.6,2.4,.12], color:lampOf(p.theme), glow:true, onClick:[{path:k}]});
+    });
+  }
+}
+
+// 還沒做的關卡先用一個小房間頂著：房間盡頭一扇門，點了就結算通關
+const stubLevel = s => ({name:s.name, intro:s.intro, stages:[{theme:3, size:[6,2.3], decor:[],
+  objects:[{name:'尚未完成的出口', pos:[0,-2.15], size:[1.8,2.4,.2], color:'#6a3a2a',
+    onClick:[{say:'這一層還在施工。門後是光。'}, {end:'win', text:s.exitText}]}]}]});
+
+// ---------- 視角 / 換房間 ----------
+let mx = 0, my = 0;
+const camPos = new THREE.Vector3(0, EYE, 1.2); // 站在房間偏後方，整面場景才看得全
+
+const fade = Object.assign(document.createElement('div'), {id:'fade'});
+fade.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s;z-index:5';
+document.body.append(fade);
+
+function advance(){ // 往前走：黑屏帶過，換成下一個房間
+  if(!R || !level || busy || stageIdx >= level.stages.length-1) return;
+  busy = true; fade.style.opacity = 1;
+  setTimeout(()=>{ enterStage(stageIdx+1); fade.style.opacity = 0; setTimeout(()=>busy=false, 350); }, 400);
+}
+$('next').onclick = advance;
+addEventListener('keydown', e=>{ if(e.code==='Space' && $('next').style.display==='block' && menu.style.display!=='flex' && $('panel').style.display!=='block'){ e.preventDefault(); advance(); } });
+addEventListener('mousemove',e=>{ mx=e.clientX/innerWidth*2-1; my=e.clientY/innerHeight*2-1; hover(e); });
+// 畫面整個往上推一些，物件才不會被下方的文字框蓋住
+const fit = ()=>{ camera.aspect=innerWidth/innerHeight; camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight*.14, innerWidth, innerHeight); renderer.setSize(innerWidth,innerHeight); };
+addEventListener('resize', fit); fit();
+
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pick(e){
+  ndc.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+  ray.setFromCamera(ndc,camera);
+  return ray.intersectObjects(interactables, true)[0]?.object || null;
+}
+// 找出這個物件第一個要擲的屬性（給「敏銳直覺」提示用）
+function firstCheck(acts){
+  for(const a of acts||[]){ const r = a.check || firstCheck(a.then) || firstCheck(a.else); if(r) return r; }
+}
+function hover(e){
+  const o = !R || e.target.closest('#panel,#next,#gain') ? null : pick(e), h=$('hover');
+  h.style.display=o?'block':'none';
+  if(o){ h.textContent = o.userData.name + (R.hint && firstCheck(o.userData.spec.onClick) ? `（${STATS[firstCheck(o.userData.spec.onClick)]}）` : ''); h.style.left=e.clientX+14+'px'; h.style.top=e.clientY+14+'px'; }
+  document.body.style.cursor = o?'pointer':'default';
+}
+// ---------- 聚焦：點到互動點時，鏡頭拉近、轉向它；面板關掉、點空白處、按 Esc 或過一會兒（沒有面板時）就拉回來 ----------
+let focusOn = false, focusF = 0, focusData = null, focusShift = 0, focusTimer = 0;
+function setFocus(m){
+  const b = new THREE.Box3().setFromObject(m), c = b.getCenter(new THREE.Vector3()), s = b.getSize(new THREE.Vector3());
+  const dist = Math.min(2.4, Math.max(1.5, Math.max(s.x, s.y)*1.1));
+  focusData = {look:c, pos:new THREE.Vector3(c.x*.8, EYE-.1, c.z+dist), fov:48};
+  focusOn = true; clearTimeout(focusTimer);
+}
+function unfocus(){ focusOn = false; clearTimeout(focusTimer); }
+addEventListener('keydown', e=>{ if(e.code==='Escape' && $('panel').style.display!=='block') unfocus(); });
+addEventListener('click',e=>{
+  if(!R || !level || busy || e.target.closest('#panel,#next,#gain')) return;
+  const o = pick(e); if(!o){ unfocus(); return; }
+  const spec = o.userData.spec;
+  setFocus(o);
+  if(o.userData.done && spec.doneSay) log(spec.doneSay);
+  else run(spec.onClick, o.userData);
+  if(focusOn && $('panel').style.display!=='block') focusTimer = setTimeout(unfocus, 2400); // 沒有面板的互動：看完字就拉回
+});
+
+// ---------- 主迴圈 ----------
+let lastT = performance.now();
+const lerp = (a,b,k)=>a+(b-a)*k;
+function frame(){
+  const now = performance.now(), dt = Math.min((now-lastT)/1000, .05), t = now/1000; lastT = now;
+  const k = Math.min(1, dt*7);
+  focusF += ((focusOn?1:0) - focusF)*k;
+  focusShift += ((focusOn && $('panel').style.display==='block' ? 1 : 0) - focusShift)*k; // 面板在右邊，物件往左讓出位置
+  const f = focusData ? focusF : 0, par = 1 - f*.75;
+  let yaw = -mx*.35*par, pitch = -.1 - my*.15*par, fov = 70;
+  camera.position.copy(camPos);
+  if(f > .001){
+    camera.position.lerp(focusData.pos, f);
+    const d = focusData.look.clone().sub(camera.position);
+    yaw = lerp(yaw, Math.atan2(-d.x, -d.z) - mx*.05, f); pitch = lerp(pitch, Math.atan2(d.y, Math.hypot(d.x,d.z)) - my*.04, f); fov = lerp(70, focusData.fov, f);
+  }
+  camera.fov = fov;
+  camera.setViewOffset(innerWidth, innerHeight, innerWidth*.17*focusShift, innerHeight*.14, innerWidth, innerHeight);
+  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  for(const m of flickers){ const k = m.userData.spec.flicker===2 ? 1.15 : 1; // 假的牆閃得稍微不同拍
+    m.material.color.setHex(Math.sin(t*9*k)+Math.sin(t*23*k) > .2 ? 0xfff2a0 : 0x6a5f20); }
+  lamp.position.set(camera.position.x, H-.5, camera.position.z-.5);
+  lamp.intensity = Math.sin(t*23)>.97 || Math.sin(t*7.3)>.995 ? .35 : 1;
+  renderer.render(scene,camera);
+  requestAnimationFrame(frame);
+}
+async function boot(){
+  loadMeta();
+  try{ [CHARS, ITEMS, UPGRADES, LEVEL0] = await Promise.all(['data/characters.json','data/items.json','data/upgrades.json','data/level0.json'].map(u=>fetch(u).then(r=>r.json()))); }
+  catch(e){ return screen('<p>載入資料失敗。請用 http 伺服器開啟，不要直接開檔案。</p>'); }
+  menuActs.title();
+}
+frame();
+boot();
+</script>
+</body>
+</html>

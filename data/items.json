@@ -1,0 +1,20 @@
+{
+  "almond":       { "icon": "🧴", "name": "杏仁水",       "value": 12, "price": 25, "use": { "san": 15 },
+                    "desc": "灰瓶的杏仁水。喝完一整瓶約等於一餐，也能讓人冷靜下來。（SAN +15）" },
+  "almond_blue":  { "icon": "💧", "name": "藍瓶杏仁水",   "value": 40, "price": 90, "use": { "san": 35 },
+                    "desc": "傳聞藍瓶能隔絕外界對心智的影響。（SAN +35）" },
+  "candy_silver": { "icon": "🍬", "name": "銀舌糖",       "value": 20, "price": 45, "use": { "stat": "CHA", "plus": 3 },
+                    "desc": "吃下後說話特別有說服力。（本局 魅力 +3）" },
+  "bar":          { "icon": "🍫", "name": "能量棒",       "value": 8,  "price": 20, "use": { "san": 8 },
+                    "desc": "在這種地方，一口甜的東西也能穩住情緒。（SAN +8）" },
+  "flashlight":   { "icon": "🔦", "name": "手電筒",       "value": 25, "price": 70, "passive": { "WIS": 5 },
+                    "desc": "帶著它時，感知檢定 +5%，停電時也不怕。" },
+  "earplugs":     { "icon": "🎧", "name": "耳塞",         "value": 10, "price": 30,
+                    "desc": "擋掉日光燈突然爆響的嗡鳴。" },
+  "note":         { "icon": "📜", "name": "破舊的筆記",   "value": 10,
+                    "desc": "被水浸皺的紙頁，記著前人的警告。" },
+  "red_key":      { "icon": "🗝️", "name": "紅色鑰匙",     "value": 15,
+                    "desc": "一把染成暗紅色的鑰匙，不知道開哪扇門。" },
+  "coin":         { "icon": "🪙", "name": "古老的硬幣",   "value": 50,
+                    "desc": "不知道是哪個年代的，但感覺值點錢。" }
+}
