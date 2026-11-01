@@ -82,6 +82,7 @@ const up = id => meta.up[id]||0;
 const slotCount = () => 3 + up('slots');
 let meta = {remnant:0, unlocked:[], vault:[], up:{}, pack:[], runs:0}; // 局外成長，存在 localStorage
 let R = null;     // 這一輪冒險（死亡或結局就丟掉）；null = 在選單中
+const RUN_KEY = 'backrooms_run_v1'; // 冒險中途存檔：R + 所在樓層與房間
 let draft = null; // 角色創建中的暫存
 
 const $ = id => document.getElementById(id);
@@ -92,6 +93,13 @@ function log(msg, cls='sys'){
 }
 function loadMeta(){ try{ Object.assign(meta, JSON.parse(localStorage.getItem(META_KEY))); }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem(META_KEY, JSON.stringify(meta)); }catch(e){ log('無法存檔（瀏覽器封鎖了本機儲存）','bad'); } }
+function saveRun(){
+  if(!R || !level?.id) return;
+  try{ localStorage.setItem(RUN_KEY, JSON.stringify({R, level:level.id, stages:level.stages, stageIdx})); }catch(e){}
+}
+const clearRun = () => { try{ localStorage.removeItem(RUN_KEY); }catch(e){} };
+function loadRun(){ try{ return JSON.parse(localStorage.getItem(RUN_KEY)); }catch(e){ return null; } }
+addEventListener('pagehide', saveRun); // 關分頁、重新整理時存，擲完骰才重整也躲不掉結果
 const sanMax = s => Math.floor((s.CON + s.WIS) * 2.5) + 5*up('san');
 const itemName = id => ITEMS[id]?.name || id;
 // 獲得物品：加進背包、記一行、跳出外觀/名字/用途視窗（點一下或按鍵關閉；連續獲得會排隊）
@@ -151,23 +159,27 @@ function tickStatus(){ // 進新房間時：先發作，再倒數；回傳 false
 const odds = (stat, dc) => chance(R.stats[stat] + statMod(stat), dc, 3*up('bonus'));
 // 選項後面的標籤：（感知 DC14），有「敏銳直覺」再加成功率
 const checkTag = c => c ? `（${STATS[c.check]} DC${dcOf(c.dc, c.check)}${R.hint ? ` · ${odds(c.check, dcOf(c.dc, c.check))}%` : ''}）` : '';
+// 擲 d100：1～5 大成功、96～100 大失敗（各固定 5%，成功率上下限剛好是 5% 和 95%），其餘 ≤ 成功率為成功
+const GRADE = {crit:'大成功', ok:'成功', fail:'失敗', fumble:'大失敗'};
+const passed = g => g==='crit' || g==='ok';
 function roll(stat, dc){
-  const target = odds(stat, dc), r = d(100), ok = r<=target;
-  const grade = r<=target/5 ? '極限成功' : r<=target/2 ? '困難成功' : ok ? '成功' : r>=96 ? '大失敗' : '失敗';
-  log(`【${STATS[stat]} 檢定 DC${dc}】擲 ${r} / ${target} → ${grade}`, ok?'ok':'bad');
-  return ok;
+  const target = odds(stat, dc), r = d(100), g = r<=5 ? 'crit' : r>=96 ? 'fumble' : r<=target ? 'ok' : 'fail';
+  log(`【${STATS[stat]} 檢定 DC${dc}】擲 ${r} / ${target} → ${GRADE[g]}`, passed(g)?'ok':'bad');
+  return g;
 }
-function check(stat, dc){
+function check(stat, dc){ // 回傳 crit / ok / fail / fumble
   dc = dcOf(dc, stat);
-  if(roll(stat, dc)) return true;
-  if(R.rerolls>0 && !rules().some(r=>r.noReroll)){
+  let g = roll(stat, dc);
+  if(!passed(g) && R.rerolls>0 && !rules().some(r=>r.noReroll)){
     R.rerolls--; renderStats();
     log('使用重擲');
-    if(roll(stat, dc)) return true;
+    g = roll(stat, dc);
   }
-  for(const r of rules()) if(r.onFail && run(r.onFail, {})===false) break;
-  return false;
+  if(!passed(g)) for(const r of rules()) if(r.onFail && run(r.onFail, {})===false) break;
+  return g;
 }
+// 事件的分支：crit / fumble 沒寫就退回 ok / fail
+const branch = (a, g) => (g==='crit' && a.crit) || (g==='fumble' && a.fumble) || (passed(g) ? a.ok : a.fail) || [];
 
 // ---------- 背包 / 靈魂保險箱面板（冒險中） ----------
 function renderPanel(){
@@ -208,7 +220,7 @@ const panelActs = {
   },
   haggle(){
     const {def, obj} = shopCtx; obj.haggled = true;
-    if(check(def.haggle, def.haggleDc)){ obj.cheap = true; log('他嘆口氣，把價錢往下壓了一些。','ok'); } else log('他不為所動。','bad');
+    if(passed(check(def.haggle, def.haggleDc))){ obj.cheap = true; log('他嘆口氣，把價錢往下壓了一些。','ok'); } else log('他不為所動。','bad');
     if(R) renderShop(); // 樓層規則的 onFail 可能讓理智歸零
   }
 };
@@ -263,14 +275,14 @@ const menuActs = {
   title(){
     screen(`<h1>BACKROOMS</h1><p class="sub">Level 0 · 黃色房間</p><div class="chip big">◈ ${meta.remnant} Remnant</div>
       <div class="nav">
-        <button class="primary" data-act="select">開始冒險</button>
+        ${loadRun() ? `<button class="primary" data-act="resume">繼續冒險</button><button data-act="select">開始新冒險<span class="tag">放棄目前的</span></button>` : `<button class="primary" data-act="select">開始冒險</button>`}
         <button data-act="shop">商店</button>
         <button data-act="gacha">抽獎<span class="tag">施工中</span></button>
         <button data-act="upgrades">永久強化</button>
         <button data-act="vaultView">靈魂保險箱<span class="tag">${meta.vault.length}/${slotCount()}</span></button>
         <button data-act="settings">設定</button>
       </div><p class="foot">雛形 v0.1 · 已冒險 ${meta.runs} 次<br>Level 0 的設定取材自 The Backrooms Wiki（backrooms-wiki.wikidot.com，CC BY-SA 3.0）</p>`, 'title');
-    if(!level) loadLevel(buildLevel(levels[START])); // 首頁背景：直接拿第一關當場景
+    if(!level) loadLevel(buildLevel(START)); // 首頁背景：直接拿第一關當場景
   },
   select(){ page('選擇角色', `<div class="cards">${charCards(true)}</div>`); },
   shop(tab='supply'){
@@ -335,7 +347,15 @@ const menuActs = {
     meta.pack = []; saveMeta();
     R.rerolls = R.rerollMax = (c.ability?.reroll||0) + up('reroll');
     $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
-    renderStats(); loadLevel(buildLevel(levels[START]));
+    renderStats(); loadLevel(buildLevel(START)); saveRun();
+  },
+  async resume(){
+    const sv = loadRun();
+    try{ await levelCfg(sv.level); }catch(e){ clearRun(); return menuActs.title(); } // 樓層檔不見了就放棄這個存檔
+    R = sv.R; level = buildLevel(sv.level, sv.stages);
+    $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
+    log('（繼續上次的冒險）'); renderStats(); enterStage(sv.stageIdx, true);
+    if(R.points) openPanel();
   }
 };
 menu.onclick = e=>{ const b=e.target.closest('[data-act]'); if(b) menuActs[b.dataset.act](b.dataset.arg); };
@@ -344,7 +364,7 @@ menu.onclick = e=>{ const b=e.target.closest('[data-act]'); if(b) menuActs[b.dat
 function endRun(kind, text){
   const gain = R.inv.reduce((n,id)=>n+ITEMS[id].value, 0) + (kind==='win' ? WIN_BONUS : 0);
   const lost = R.inv.map(itemName), kept = R.vault.map(itemName);
-  meta.remnant += gain; meta.vault = [...R.vault]; meta.runs++; saveMeta();
+  meta.remnant += gain; meta.vault = [...R.vault]; meta.runs++; saveMeta(); clearRun();
   R = null; $('vaultBtn').style.display = 'none'; $('panel').style.display = 'none'; $('next').style.display = 'none'; $('prog').textContent = ''; unfocus();
   screen(`<h2>${kind==='win' ? text || '你穿過了閃爍的牆' : '你的理智崩潰了'}</h2>`
     + `<p>換成 Remnant 的物品：${lost.join('、') || '無'}${kind==='win' ? `（通關獎勵 +${WIN_BONUS}）` : ''}</p>`
@@ -353,12 +373,12 @@ function endRun(kind, text){
 }
 
 // ---------- 事件執行器：關卡 JSON 的 onClick 就是動作清單 ----------
-// 動作：say / check(ok,fail) / san+why / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
+// 動作：say / check(ok,fail,crit,fumble) / san+why / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
 function run(actions, obj){
   for(const a of actions){
     if(!R) return false; // 樓層規則的 onFail 可能已經把人弄死了
     if(a.say) log(a.say, a.cls);
-    if(a.check){ if(run(check(a.check, a.dc) ? a.ok||[] : a.fail||[], obj)===false) return false; }
+    if(a.check){ if(run(branch(a, check(a.check, a.dc)), obj)===false) return false; }
     if(a.san){
       const n = Math.max(1, d(a.san) - (R.char.ability?.sanReduce||0));
       R.san = Math.max(0, R.san-n); log(`${a.why||''}　SAN -${n}`,'bad'); renderStats();
@@ -435,9 +455,10 @@ async function levelCfg(id){
   }
   return levels[id];
 }
-const buildLevel = cfg => cfg.stub ? stubLevel(cfg) : genLevel(cfg);
+// saved：存檔裡的房間，有的話照它重建（岔路、物件用過沒有都保留）
+const buildLevel = (id, saved) => { const cfg = levels[id], lv = cfg.stub ? stubLevel(cfg) : genLevel(cfg, saved); lv.id = id; return lv; };
 async function goLevel(id){
-  try{ loadLevel(buildLevel(await levelCfg(id))); }
+  try{ await levelCfg(id); loadLevel(buildLevel(id)); }
   catch(e){ return log(`載入 data/levels/${id}.json 失敗。`,'bad'); }
   R.points = (R.points||0) + GROW; openPanel(); // 往下穿越一層：分配成長點
 }
@@ -502,6 +523,7 @@ function enterStage(i, quiet){
   buildStage(i);
   $('next').style.display = R && i < level.stages.length-1 && !s.exit && !s.fork ? 'block' : 'none';
   updateProg();
+  saveRun();
   if(!R || quiet) return;
   $('log').innerHTML = ''; // 視覺小說式：文字框只留這個房間的字
   if(tickStatus()===false) return;
@@ -517,8 +539,8 @@ function enterStage(i, quiet){
 // cfg.stages 房間總數；cfg.forks 其中幾間是岔路口；cfg.plan 指定第幾間要抽哪一類；cfg.noTransitionBefore 前幾間不抽換層事件。同一個事件一局只出現一次
 // 每個事件房間隨機配一種出路：plain 沒有特別的出口（才顯示「往前走」）、window 窗戶、door 門
 const lampOf = th => '#' + THEMES[th].lamp.toString(16).padStart(6,'0');
-function genLevel(cfg){
-  const used = new Set(), stages = []; let lastTheme = -1, pending = null;
+function genLevel(cfg, saved){
+  const used = new Set(saved?.map(s=>s.name)), stages = saved || []; let lastTheme = -1, pending = null;
   const draw = cat => {
     const fit = cfg.objects.filter(t=>!used.has(t.name) && (!cat || t.cat===cat) && !(t.cat==='換層' && stages.length < cfg.noTransitionBefore));
     if(!fit.length) return cat ? draw() : null;
@@ -546,7 +568,7 @@ function genLevel(cfg){
     for(let i=0; i<n-1; i++) s.decor.push({pos:[(i+1-n/2)*2.3, -D+(D+.2)/2], size:[.2,H,D+.2], color:'#a89a35'});
     return s;
   };
-  const N = cfg.stages, forkAt = new Set();
+  const N = saved ? 0 : cfg.stages, forkAt = new Set(); // 讀檔時不重排
   for(let k=0; k<(cfg.forks||0); k++) for(let tries=0; tries<20; tries++){
     const i = 1 + Math.floor(Math.random()*(N-3)); // 岔路口後面一定還有一個事件房間，不會緊貼出口
     if(!forkAt.has(i) && !forkAt.has(i-1) && !forkAt.has(i+1)){ forkAt.add(i); break; }
@@ -556,10 +578,12 @@ function genLevel(cfg){
     const cat = cfg.plan?.[i] || pending; pending = null;
     stages.push(makeStage(draw(cat) || draw()));
   }
-  const ex = room(), [W,D] = ex.size;
-  ex.name = cfg.exit.name;
-  ex.objects.push({...cfg.exit, pos:[(Math.random()*2-1)*Math.max(0,W/2-1.8), -(D-.12)], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
-  stages.push(ex);
+  if(!saved){
+    const ex = room(), [W,D] = ex.size;
+    ex.name = cfg.exit.name;
+    ex.objects.push({...cfg.exit, pos:[(Math.random()*2-1)*Math.max(0,W/2-1.8), -(D-.12)], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
+    stages.push(ex);
+  }
   const fresh = () => draw() || (used.clear(), draw());
   return {name:cfg.name, intro:cfg.intro, stages, events:cfg.events, enterChance:cfg.enterChance, dc:cfg.dc, rules:cfg.rules, shops:cfg.shops,
     more: n => Array.from({length:n}, ()=>makeStage(fresh())), // 繞路多出來的房間、岔路口的其他選項

@@ -7,8 +7,8 @@ const root = path.join(__dirname, '..'), read = f => JSON.parse(fs.readFileSync(
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const STATS = [...html.match(/const STATS = \{([^}]*)\}/)[1].matchAll(/(\w+):/g)].map(m => m[1]);
 const ACTIONS = new Set([...html.slice(html.indexOf('function run('), html.indexOf('// ---------- 場景')).matchAll(/\ba\.(\w+)/g)].map(m => m[1]));
-for (const k of ['ok', 'fail', 'why', 'cls', 'then', 'else', 'text', 'dc']) ACTIONS.add(k); // 動作的附屬欄位
-const LISTS = ['onClick', 'do', 'ok', 'fail', 'then', 'else', 'onRoom', 'onFail']; // 這些欄位的值是動作清單
+for (const k of ['ok', 'fail', 'crit', 'fumble', 'why', 'cls', 'then', 'else', 'text', 'dc']) ACTIONS.add(k); // 動作的附屬欄位
+const LISTS = ['onClick', 'do', 'ok', 'fail', 'crit', 'fumble', 'then', 'else', 'onRoom', 'onFail']; // 這些欄位的值是動作清單
 
 const ITEMS = read('data/items.json'), STATUS = read('data/statuses.json'), CHARS = read('data/characters.json');
 const LEVELS = Object.fromEntries(fs.readdirSync(path.join(root, 'data/levels')).filter(f => f.endsWith('.json')).map(f => [f.slice(0, -5), read(`data/levels/${f}`)]));
