@@ -80,6 +80,8 @@
       "onClick": [
         { "say": "配電箱的蓋子敞著，裡面是一團彩色的電線。" },
         { "check": "INT",
+          "crit": [{ "say": "你不只接好了線，還順手把整排燈的電壓調穩了。", "cls": "ok" }, { "lit": 8 }, { "heal": 3 }, { "done": true }],
+          "fumble": [{ "say": "你剪錯了線，整個人被電得往後彈。", "cls": "bad" }, { "hp": 4, "why": "手掌一片焦黑。" }, { "status": "bleed" }, { "done": true }],
           "ok":   [{ "say": "你按顏色把線一根根接回去，頭頂的燈穩定下來。", "cls": "ok" }, { "lit": 5 }, { "done": true }],
           "fail": [{ "hp": 2, "why": "電火花濺在手上。" }, { "done": true }] }
       ] },
@@ -101,6 +103,8 @@
       "onClick": [
         { "say": "走廊兩側都是鏡子，其中一面裡的你動作慢了半拍。" },
         { "check": "WIS",
+          "crit": [{ "say": "你一眼就認出來。鏡子碎掉的瞬間，碎片後面掉出一枚硬幣。", "cls": "ok" }, { "heal": 6 }, { "give": "coin" }, { "done": true }],
+          "fumble": [{ "say": "你砸碎的是自己那一面。所有鏡子裡的你同時轉過頭來。", "cls": "bad" }, { "san": 5, "why": "它們都在笑。" }, { "status": "dread" }, { "done": true }],
           "ok":   [{ "say": "你認出是哪一面，抓起地上的磚塊砸了過去。鏡裡的人瞬間碎成了光。", "cls": "ok" }, { "heal": 4 }, { "done": true }],
           "fail": [{ "san": 3, "why": "你砸錯了鏡子。另一面裡的你，在你背後多站了一會兒。" }, { "done": true }] }
       ] },
@@ -129,6 +133,9 @@
         { "rand": [
           { "w": 3, "do": [{ "give": "bar" }] },
           { "w": 2, "do": [{ "give": "note" }] },
+          { "w": 2, "do": [{ "give": "canned" }] },
+          { "w": 1, "do": [{ "give": "first_aid" }] },
+          { "w": 1, "do": [{ "give": "coat" }] },
           { "w": 1, "do": [{ "give": "flashlight" }] }] },
         { "done": true }
       ] },
@@ -141,6 +148,8 @@
       "onClick": [
         { "say": "牆上有人用粉筆畫了一連串箭頭，旁邊打了叉。" },
         { "check": "WIS",
+          "crit": [{ "say": "你看懂了打叉的規律，抄了一條近路。", "cls": "ok" }, { "heal": 2 }, { "set": "chalk_ok" }, { "done": true }, { "warp": true }],
+          "fumble": [{ "say": "你跟著箭頭越走越深，等發現不對時，已經繞了很遠。", "cls": "bad" }, { "san": 2, "why": "那些叉是畫給你看的。" }, { "detour": 2 }, { "done": true }],
           "ok":   [{ "say": "你判斷這箭頭是真的，順著它走，一路平安。", "cls": "ok" }, { "heal": 2 }, { "set": "chalk_ok" }, { "done": true }],
           "fail": [{ "say": "你順著箭頭走，走進了死路。", "cls": "bad" }, { "detour": 1 }, { "done": true }] }
       ] },
@@ -158,6 +167,8 @@
           { "w": 2, "do": [{ "give": "earplugs" }] },
           { "w": 2, "do": [{ "give": "bandage" }] },
           { "w": 2, "do": [{ "give": "heatpack" }] },
+          { "w": 1, "do": [{ "give": "gloves" }] },
+          { "w": 1, "do": [{ "give": "sneakers" }] },
           { "w": 1, "do": [{ "give": "candy_silver" }] },
           { "w": 2, "do": [{ "say": "全是廢紙和碎玻璃。" }] }] },
         { "done": true }
@@ -303,6 +314,8 @@
       "onClick": [
         { "say": "牆縫裡透出暖白色的光，這一小塊地方的空氣不潮濕。" },
         { "check": "WIS",
+          "crit": [{ "say": "光像熱水一樣流過全身，傷口和疲倦一起被沖走了。", "cls": "ok" }, { "heal": 10 }, { "hpHeal": 6 }, { "cure": true }, { "done": true }],
+          "fumble": [{ "say": "你整個人站了進去，才發現那光是燙的。", "cls": "bad" }, { "hp": 5, "why": "皮膚起了一片水泡。" }, { "done": true }],
           "ok":   [{ "say": "你判斷這光是安全的，站進去，暖意像毯子一樣裹住你。", "cls": "ok" }, { "heal": 10 }, { "done": true }],
           "fail": [{ "hp": 2, "why": "光比看起來燙得多。" }, { "done": true }] }
       ] },
@@ -327,6 +340,8 @@
       "onClick": [
         { "say": "地毯滲出水來，水位一點一點漫過腳踝，水面映著晃動的燈光。" },
         { "check": "DEX",
+          "crit": [{ "say": "水面漂來一雙還能穿的跑鞋，你一把撈了起來。", "cls": "ok" }, { "give": "sneakers" }, { "done": true }],
+          "fumble": [{ "say": "你整個人摔進水裡，背包裡的東西漂走了一樣。", "cls": "bad" }, { "hp": 2, "why": "後腦撞到地板。" }, { "status": "cold" }, { "lose": 1 }, { "done": true }],
           "ok":   [{ "say": "你穩住了身體，順手撈起水面上漂著的東西。", "cls": "ok" }, { "give": "bar" }, { "done": true }],
           "fail": [{ "hp": 1, "why": "你滑了一跤，濕冷的水灌進鞋裡。" }, { "status": "cold" }, { "done": true }] }
       ] },
@@ -350,9 +365,13 @@
       ],
       "onClick": [
         { "say": "壁紙一片片捲起剝落，露出更舊的一層，上面有手寫的數字。" },
-        { "check": "INT",
-          "ok":   [{ "say": "你把數字抄了下來：「312」。看起來像房號。", "cls": "ok" }, { "set": "room_no" }, { "done": true }],
-          "fail": [{ "say": "字跡太潦草，你認不出來。" }, { "done": true }] }
+        { "shop": { "title": "剝落的壁紙", "offers": [
+          { "label": "湊近辨認潦草的字跡", "do": [{ "check": "INT",
+              "ok":   [{ "say": "你把數字抄了下來：「312」。看起來像房號。", "cls": "ok" }, { "set": "room_no" }],
+              "fail": [{ "say": "字跡太潦草，你認不出來。" }] }, { "done": true }] },
+          { "label": "把上面那層壁紙整片撕掉", "do": [{ "check": "STR", "dc": 13,
+              "ok":   [{ "say": "整片壁紙被你扯下來，底下的數字清清楚楚：「312」。", "cls": "ok" }, { "set": "room_no" }],
+              "fail": [{ "say": "壁紙撕到一半斷了，連同數字一起撕爛了。", "cls": "bad" }, { "hp": 1, "why": "指甲劈了。" }] }, { "done": true }] }] } }
       ] },
     { "w": 1.0, "where": "wall", "name": "震動的管線", "cat": "氛圍", "size": [0.2, 2.6, 0.2], "color": "#6a6a5a", "doneSay": "管線已經不震了。",
       "props": [
@@ -391,6 +410,8 @@
       "onClick": [
         { "say": "天花板的霉斑像花一樣綻開，細小的孢子飄了下來。" },
         { "check": "CON",
+          "crit": [{ "say": "霉堆底下不只一瓶，最裡面那瓶是藍色的。", "cls": "ok" }, { "give": "almond_blue" }, { "done": true }],
+          "fumble": [{ "say": "你吸了一大口孢子，跪在地上咳了很久。", "cls": "bad" }, { "hp": 3, "why": "肺裡像塞了棉花。" }, { "status": "dizzy" }, { "done": true }],
           "ok":   [{ "say": "你屏住氣快步通過，在霉堆底下摸到一瓶杏仁水。", "cls": "ok" }, { "give": "almond" }, { "done": true }],
           "fail": [{ "hp": 2, "why": "孢子嗆進喉嚨，你咳得眼前發花。" }, { "status": "dizzy" }, { "done": true }] }
       ] },
@@ -448,9 +469,14 @@
       ],
       "onClick": [
         { "say": "牆頂有一團影子正沿著天花板爬過去，燈管一盞盞變暗。" },
-        { "check": "WIS",
-          "ok":   [{ "say": "你盯著腳尖，直到它爬遠。", "cls": "ok" }, { "done": true }],
-          "fail": [{ "san": 3, "why": "你抬頭了。" }, { "done": true }] }
+        { "shop": { "title": "天花板邊緣的影子", "offers": [
+          { "label": "盯著腳尖，不要抬頭", "do": [{ "check": "WIS",
+              "ok":   [{ "say": "你盯著腳尖，直到它爬遠。", "cls": "ok" }],
+              "fail": [{ "san": 3, "why": "你抬頭了。" }] }, { "done": true }] },
+          { "label": "貼在牆邊屏住呼吸，一動也不動", "do": [{ "check": "CON", "dc": 13,
+              "ok":   [{ "say": "它從你頭頂爬過去，沒有停下來。", "cls": "ok" }, { "heal": 2 }],
+              "fail": [{ "say": "你憋不住，喘了一口氣。它停了。", "cls": "bad" }, { "san": 4, "why": "它在你頭頂停了很久。" }] }, { "done": true }] },
+          { "label": "抬頭看清楚它往哪裡爬", "do": [{ "san": 2, "why": "你看見了它。" }, { "say": "它爬向前方的房間。至少你知道那邊有什麼了。" }, { "peek": true }, { "done": true }] }] } }
       ] },
     { "w": 0.4, "where": "wall", "name": "牆縫裡的眼睛", "cat": "實體", "size": [0.08, 1.0, 0.14], "y": 1.5, "color": "#000000", "doneSay": "牆縫裡已經空了。",
       "props": [
@@ -630,9 +656,14 @@
     { "w": 1.2, "name": "積水的地毯", "cat": "資源", "size": [1.6, 0.25, 1.6], "color": "#2f4a45", "doneSay": "這裡除了水什麼也沒有了。",
       "onClick": [
         { "say": "地毯吸飽了水，一踩就噗嘰作響，霉味撲鼻。" },
-        { "check": "CON",
-          "ok":   [{ "say": "你忍著惡臭翻了翻，摸到一個還沒開封的瓶子。", "cls": "ok" }, { "give": "almond" }, { "done": true }],
-          "fail": [{ "san": 2, "why": "酸臭的霉味讓你一陣反胃。" }, { "done": true }] }
+        { "shop": { "title": "積水的地毯", "offers": [
+          { "label": "忍著惡臭用手翻", "do": [{ "check": "CON",
+              "ok":   [{ "say": "你忍著惡臭翻了翻，摸到一個還沒開封的瓶子。", "cls": "ok" }, { "give": "almond" }],
+              "fail": [{ "san": 2, "why": "酸臭的霉味讓你一陣反胃。" }] }, { "done": true }] },
+          { "label": "找根棍子，看準了再撥", "do": [{ "check": "INT", "dc": 13,
+              "ok":   [{ "say": "你用棍子把東西一樣樣撥出來，手都沒碰到水。", "cls": "ok" }, { "give": "almond" }],
+              "fail": [{ "say": "棍子一戳，地毯下冒出一大串氣泡，什麼也沒撥到。", "cls": "bad" }] }, { "done": true }] },
+          { "label": "不碰，繞過去", "do": [{ "done": true }] }] } }
       ] },
     { "w": 1.2, "name": "牆裡的抓撓聲", "cat": "氛圍", "size": [0.15, 1.8, 1.4], "color": "#b5a53d", "doneSay": "牆裡已經安靜了。",
       "onClick": [
@@ -640,6 +671,19 @@
         { "check": "WIS",
           "ok":   [{ "say": "你聽出那只是舊管線的震動。", "cls": "ok" }, { "done": true }],
           "fail": [{ "san": 2, "why": "抓撓聲停了。然後它從你背後的牆裡再次響起。" }, { "done": true }] }
+      ] },
+    { "w": 0.6, "where": "wall", "name": "安靜的角落", "cat": "資源", "size": [0.8, 0.5, 0.6], "color": "#5a4a2a", "doneSay": "你已經在這裡休息過了。",
+      "props": [
+        { "at": [0, 0.3], "size": [1.4, 0.06, 1.0], "y": 0.03, "color": "#3a3020" },
+        { "at": [0.5, 0.1], "size": [0.2, 0.06, 0.2], "y": 0.56, "color": "#ffe9a0", "glow": true }
+      ],
+      "onClick": [
+        { "say": "牆角這一小塊地毯是乾的，嗡鳴聲也遠了一點。有人在這裡放了一張摺疊坐墊。" },
+        { "shop": { "title": "安靜的角落", "offers": [
+          { "label": "坐下來好好休息", "do": [{ "rand": [
+              { "w": 3, "do": [{ "say": "你靠著牆閉上眼睛，醒來時身體輕了很多。", "cls": "ok" }, { "hpHeal": 6 }, { "heal": 3 }, { "cure": "cold" }] },
+              { "w": 1, "do": [{ "say": "你剛睡著，就被很近的腳步聲驚醒。", "cls": "bad" }, { "hpHeal": 2 }, { "san": 2, "why": "腳步聲停在你面前，又走遠了。" }] }] }, { "done": true }] },
+          { "label": "只坐一下，處理傷口", "do": [{ "say": "你把傷口重新紮緊，喘了口氣。", "cls": "ok" }, { "hpHeal": 3 }, { "cure": "bleed" }, { "done": true }] }] } }
       ] },
     { "w": 0.8, "name": "掉在地上的日光燈管", "cat": "資源", "size": [1.4, 0.2, 0.4], "color": "#fff3c0", "doneSay": "燈管已經不響了。",
       "onClick": [
@@ -663,6 +707,9 @@
           { "w": 3, "do": [{ "give": "bar" }] },
           { "w": 2, "do": [{ "give": "candy_silver" }] },
           { "w": 1, "do": [{ "give": "almond_blue" }] },
+          { "w": 1, "do": [{ "give": "first_aid" }] },
+          { "w": 1, "do": [{ "give": "glasses" }] },
+          { "w": 2, "do": [{ "give": "canned" }] },
           { "w": 1, "do": [{ "give": "coin" }] }] },
         { "done": true }
       ] },
@@ -687,6 +734,8 @@
       "onClick": [
         { "say": "走廊的暗處站著一個人影，一動也不動。" },
         { "check": "WIS",
+          "crit": [{ "say": "你看清楚了，也順便看清楚了這一帶的格局。心裡踏實了不少。", "cls": "ok" }, { "heal": 4 }, { "done": true }],
+          "fumble": [{ "say": "你多看了一眼。它也多看了你一眼。", "cls": "bad" }, { "san": 5, "why": "它往前走了一步。" }, { "status": "watched" }, { "done": true }],
           "ok":   [{ "say": "你定睛一看，那只是被陰影拉長的立柱。", "cls": "ok" }, { "done": true }],
           "fail": [{ "san": 3, "why": "它一直在看你。你不敢確認它是否動過。" }, { "done": true }] }
       ] }
@@ -741,6 +790,8 @@
     "vend": { "title": "倒地的販賣機", "say": "投幣口卡著什麼，機身底下好像壓著瓶子。",
       "offers": [
         { "label": "用力把它推正", "do": [{ "check": "STR",
+            "crit": [{ "say": "販賣機一被推正，叮叮咚咚吐出一堆東西。", "cls": "ok" }, { "give": "almond" }, { "give": "canned" }],
+            "fumble": [{ "say": "販賣機往你這邊倒了回來。", "cls": "bad" }, { "hp": 3, "why": "碎玻璃劃過手臂。" }, { "status": "bleed" }],
             "ok":   [{ "say": "你把它推正，砰的一聲，掉出一瓶杏仁水。", "cls": "ok" }, { "give": "almond" }],
             "fail": [{ "hp": 1, "why": "你的手被玻璃劃了一道口子。" }, { "status": "bleed" }] }, { "done": true }] },
         { "label": "伸手摸投幣口", "do": [{ "check": "INT",
@@ -865,12 +916,16 @@
         { "get": "earplugs", "pay": ["almond"], "payCheap": ["bar"] },
         { "get": "bandage", "pay": ["bar"] },
         { "get": "heatpack", "pay": ["bar"] },
+        { "get": "canned", "pay": ["bar"] },
+        { "get": "first_aid", "pay": ["almond", "bar"], "payCheap": ["almond"] },
+        { "get": "coat", "pay": ["almond", "almond"], "payCheap": ["almond", "bar"] },
         { "get": "candy_silver", "pay": ["almond", "bar"], "payCheap": ["almond"] },
         { "get": "flashlight", "pay": ["almond", "almond", "bar"], "payCheap": ["almond", "bar"] }
       ] },
     "kid": { "title": "蹲著的孩子", "say": "他不要錢，只盯著你口袋裡「有故事的東西」。",
       "offers": [
         { "get": "candy_silver", "pay": ["note"] },
+        { "get": "badge", "pay": ["note", "note"] },
         { "get": "almond_blue", "pay": ["coin"] }
       ] },
     "blackmarket": { "title": "面具黑市", "say": "「情報，不賣東西。」",
