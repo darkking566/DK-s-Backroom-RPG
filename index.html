@@ -425,6 +425,7 @@ function run(actions, obj){
 
 // ---------- 場景 ----------
 const H = 3, EYE = 1.6;
+const SHAPES = {box:()=>new THREE.BoxGeometry(1,1,1), cyl:()=>new THREE.CylinderGeometry(.5,.5,1,20), ball:()=>new THREE.SphereGeometry(.5,20,14)};
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x1a1808);
 scene.fog = new THREE.Fog(0x1a1808, 2, 16);
@@ -511,10 +512,19 @@ function buildStage(i){
   box(W/2+.15, H/2, mid, .3, H, L, tiled(wallTex,L,H,T.wall));
   const n = T.lights[0] + Math.floor(Math.random()*(T.lights[1]-T.lights[0]+1));
   for(let k=0;k<n;k++) box((Math.random()-.5)*W*.6, H-.03, -D+.8+Math.random()*(L-1.6), 1.6, .05, .5, lightMat);
-  for(const dc of s.decor) box(dc.pos[0], dc.y ?? dc.size[1]/2, dc.pos[1], ...dc.size, new (dc.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:dc.color}));
+  // 零件：size 是外框尺寸，shape 可選 box/cyl/ball，rot 是 [x,y,z] 旋轉角度（度）
+  const part = (p, mat)=>{
+    const m = new THREE.Mesh(SHAPES[p.shape||'box'](), mat);
+    m.scale.set(...p.size); m.position.set(p.pos[0], p.y ?? p.size[1]/2, p.pos[1]);
+    if(p.rot) m.rotation.set(...p.rot.map(a=>a*Math.PI/180));
+    group.add(m); return m;
+  };
+  for(const dc of s.decor) part(dc, dc.wall ? tiled(wallTex, 1, 1, T.wall) // wall：貼這間房的壁紙，跟牆融在一起
+    : new (dc.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:dc.color}));
   for(const o of s.objects){
-    const [w,h,dd] = o.size;
-    const m = box(o.pos[0], o.y ?? h/2, o.pos[1], w, h, dd, new (o.flicker || o.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:o.color}));
+    // hitbox：本體只當點擊範圍、不顯示，外觀全交給 props
+    const m = part(o, o.hitbox ? new THREE.MeshBasicMaterial({transparent:true, opacity:0, depthWrite:false})
+      : new (o.flicker || o.glow ? THREE.MeshBasicMaterial : THREE.MeshLambertMaterial)({color:o.color}));
     if(o.flicker) flickers.push(m);
     m.userData = {spec:o, name:o.name}; interactables.push(m);
   }
@@ -566,10 +576,10 @@ function genLevel(cfg, saved){
     const x = (Math.random()*2-1) * Math.max(0, W/2-1.8), {w, where, cat, props, ...t} = spec;
     s.name = t.name; s.cat = cat;
     s.objects.push({...t, size: thin ? [t.size[2],t.size[1],t.size[0]] : t.size, pos:[x,-off]}); // 貼著北牆；薄板轉成東西向
-    for(const p of props||[]) s.decor.push({pos:[x+p.at[0], -off+p.at[1]], size:p.size, color:p.color, y:p.y, glow:p.glow});
+    for(const {at, ...p} of props||[]) s.decor.push({...p, pos:[x+at[0], -off+at[1]]});
     if(kind!=='plain'){ s.exit = kind; s.exitX = (x>.2 ? -1 : x<-.2 ? 1 : Math.random()<.5 ? -1 : 1) * (W/2-1.1); } // 出口放在事件物件的另一側
     if(W>5.5 && Math.random()<.5) for(const sx of [-1,1]) s.decor.push({pos:[sx*(W/2-.5), -.5-Math.random()*(D-1)], size:[.5,H,.5], color:'#b5a53d'});
-    if(Math.random()<.5) s.decor.push({pos:[(Math.random()-.5)*W*.5, -.6-Math.random()*(D-1.2)], size:[2.2,.02,2.2], color:'#2a3c3c'});
+    if(Math.random()<.5) s.decor.push({pos:[(Math.random()-.5)*W*.5, -.6-Math.random()*(D-1.2)], size:[2.2,.002,2.2], color:'#2a3c3c'});
     return s;
   };
   // 岔路口：n 條走廊並排，中間用隔牆分開，點哪條就走哪條
@@ -590,9 +600,10 @@ function genLevel(cfg, saved){
     stages.push(makeStage(draw(cat) || draw()));
   }
   if(!saved){
-    const ex = room(), [W,D] = ex.size;
-    ex.name = cfg.exit.name;
-    ex.objects.push({...cfg.exit, pos:[(Math.random()*2-1)*Math.max(0,W/2-1.8), -(D-.12)], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
+    const ex = room(), [W,D] = ex.size, {props, ...exit} = cfg.exit, x = (Math.random()*2-1)*Math.max(0,W/2-1.8), z = -(D-.12);
+    ex.name = exit.name;
+    ex.objects.push({...exit, pos:[x,z], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
+    for(const {at, ...p} of props||[]) ex.decor.push({...p, pos:[x+at[0], z+at[1]]});
     stages.push(ex);
   }
   const fresh = () => draw() || (used.clear(), draw());
