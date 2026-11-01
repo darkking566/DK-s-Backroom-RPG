@@ -169,11 +169,14 @@
       ],
       "onClick": [
         { "say": "牆上不知何時多了一扇矮門，裡面是衣櫃大小的空間，掛著幾件舊外套。" },
-        { "check": "INT",
-          "ok":   [{ "say": "你一件件摸過口袋。", "cls": "ok" },
-                   { "rand": [{ "w": 2, "do": [{ "give": "note" }] }, { "w": 1, "do": [{ "give": "coin" }] }] },
-                   { "done": true }],
-          "fail": [{ "san": 2, "why": "衣櫃深處有什麼東西縮了回去。" }, { "done": true }] }
+        { "shop": { "title": "牆上的窄門", "offers": [
+          { "label": "一件件摸過口袋", "do": [{ "check": "INT",
+              "ok":   [{ "say": "你一件件摸過口袋。", "cls": "ok" }, { "rand": [{ "w": 2, "do": [{ "give": "note" }] }, { "w": 1, "do": [{ "give": "coin" }] }] }],
+              "fail": [{ "san": 2, "why": "衣櫃深處有什麼東西縮了回去。" }] }, { "done": true }] },
+          { "label": "把外套全扯下來抖一抖", "do": [{ "check": "STR", "dc": 14,
+              "ok":   [{ "say": "外套一件件落地，叮噹一聲，有東西滾了出來。", "cls": "ok" }, { "rand": [{ "w": 1, "do": [{ "give": "note" }] }, { "w": 2, "do": [{ "give": "coin" }] }] }],
+              "fail": [{ "say": "最裡面那件外套扯不下來。它在往回拉。", "cls": "bad" }, { "san": 3, "why": "你鬆手時，袖子還勾著你的手腕。" }] }, { "done": true }] },
+          { "label": "關上門，不碰", "do": [{ "done": true }] }] } }
       ] },
     { "w": 0.5, "where": "wall", "name": "請勿進入的工具間", "cat": "資源", "size": [0.15, 2.2, 1.0], "color": "#5a6a5a", "doneSay": "工具間已經翻過了。",
       "props": [
@@ -184,9 +187,14 @@
       ],
       "onClick": [
         { "say": "門上貼著「請勿進入」。裡面有掃把、水桶，還有一捆備用的日光燈管。" },
-        { "check": "INT",
-          "ok":   [{ "say": "你找出能用的燈管換上，這一帶的燈穩定了下來。", "cls": "ok" }, { "lit": 3 }, { "done": true }],
-          "fail": [{ "san": 1, "why": "燈管在你手上炸開了。" }, { "done": true }] }
+        { "shop": { "title": "請勿進入的工具間", "offers": [
+          { "label": "找出能用的燈管換上", "do": [{ "check": "INT",
+              "ok":   [{ "say": "你找出能用的燈管換上，這一帶的燈穩定了下來。", "cls": "ok" }, { "lit": 3 }],
+              "fail": [{ "san": 1, "why": "燈管在你手上炸開了。" }, { "status": "bleed" }] }, { "done": true }] },
+          { "label": "爬上水桶，直接接好天花板的電線", "do": [{ "check": "DEX", "dc": 13,
+              "ok":   [{ "say": "火花一閃，整條走廊的燈同時亮了起來。", "cls": "ok" }, { "lit": 5 }],
+              "fail": [{ "say": "水桶一翻，你整個人摔進污水裡。", "cls": "bad" }, { "san": 2, "why": "髒水灌進衣領。" }, { "status": "cold" }] }, { "done": true }] },
+          { "label": "拿一瓶清潔劑就走", "do": [{ "say": "瓶身上的字被水泡糊了，但聞起來像杏仁。" }, { "give": "almond" }, { "san": 1, "why": "你不太確定那到底是什麼。" }, { "done": true }] }] } }
       ] },
     { "w": 0.2, "name": "濕地毯上的藍瓶", "cat": "資源", "size": [1.2, 0.1, 1.2], "color": "#1a2a30", "doneSay": "地毯已經踩壞了。",
       "props": [
@@ -195,9 +203,16 @@
       ],
       "onClick": [
         { "say": "一小塊特別濕的地毯正中央，立著一瓶藍色的杏仁水。" },
-        { "check": "DEX",
-          "ok":   [{ "say": "你踮著腳尖走過去，穩穩地把它拿了起來。", "cls": "ok" }, { "give": "almond_blue" }, { "done": true }],
-          "fail": [{ "say": "地毯往下陷，水一下子淹到了膝蓋。", "cls": "bad" }, { "san": 3, "why": "冰冷的水讓你一陣發抖。" }, { "status": "cold" }, { "lose": 1 }, { "done": true }] }
+        { "shop": { "title": "濕地毯上的藍瓶", "offers": [
+          { "label": "踮著腳尖走過去", "do": [{ "check": "DEX",
+              "ok":   [{ "say": "你踮著腳尖走過去，穩穩地把它拿了起來。", "cls": "ok" }, { "give": "almond_blue" }],
+              "fail": [{ "say": "地毯往下陷，水一下子淹到了膝蓋。", "cls": "bad" }, { "san": 3, "why": "冰冷的水讓你一陣發抖。" }, { "status": "cold" }, { "lose": 1 }] }, { "done": true }] },
+          { "label": "看清楚哪裡踩得住再走", "do": [{ "check": "WIS", "dc": 14,
+              "ok":   [{ "say": "你沿著地毯接縫走，一步都沒有陷下去。", "cls": "ok" }, { "give": "almond_blue" }],
+              "fail": [{ "say": "你選的那條路，正好是陷得最深的地方。", "cls": "bad" }, { "san": 3, "why": "冰冷的水讓你一陣發抖。" }, { "status": "cold" }] }, { "done": true }] },
+          { "label": "直接涉水過去，咬牙撐住", "do": [{ "check": "CON", "dc": 15,
+              "ok":   [{ "say": "水冷得刺骨，但你撐著把瓶子撈了起來。", "cls": "ok" }, { "give": "almond_blue" }, { "status": "cold" }],
+              "fail": [{ "say": "你走到一半腿就麻了，只能退回來。", "cls": "bad" }, { "san": 2, "why": "冷到骨頭裡。" }, { "status": "cold" }] }, { "done": true }] }] } }
       ] },
     { "w": 0.8, "where": "wall", "name": "越來越窄的走廊", "cat": "空間", "size": [1.0, 2.8, 0.5], "color": "#b5a53d", "doneSay": "走廊已經恢復原狀。",
       "props": [
@@ -217,11 +232,14 @@
       ],
       "onClick": [
         { "say": "整個房間上下顛倒：家具貼在天花板，燈卻在你腳下。" },
-        { "check": "WIS",
-          "ok":   [{ "say": "你穩住方向感，在倒掛的書櫃抽屜裡摸到東西。", "cls": "ok" },
-                   { "rand": [{ "w": 3, "do": [{ "give": "bar" }] }, { "w": 3, "do": [{ "give": "almond" }] }, { "w": 1, "do": [{ "give": "coin" }] }] },
-                   { "done": true }],
-          "fail": [{ "san": 3, "why": "你分不清上下，胃裡翻江倒海。" }, { "done": true }] }
+        { "shop": { "title": "倒掛的書櫃", "offers": [
+          { "label": "穩住方向感，慢慢摸過去", "do": [{ "check": "WIS",
+              "ok":   [{ "say": "你穩住方向感，在倒掛的書櫃抽屜裡摸到東西。", "cls": "ok" }, { "rand": [{ "w": 3, "do": [{ "give": "bar" }] }, { "w": 3, "do": [{ "give": "almond" }] }, { "w": 1, "do": [{ "give": "coin" }] }] }],
+              "fail": [{ "san": 3, "why": "你分不清上下，胃裡翻江倒海。" }, { "status": "dizzy" }] }, { "done": true }] },
+          { "label": "跳起來把抽屜拉下來", "do": [{ "check": "DEX", "dc": 14,
+              "ok":   [{ "say": "抽屜整個被你扯下來，東西撒了一地。", "cls": "ok" }, { "give": "almond" }, { "give": "bar" }],
+              "fail": [{ "say": "你跳起來，卻往天花板「掉」了上去。", "cls": "bad" }, { "san": 2, "why": "你重重摔回地上。" }, { "status": "dizzy" }] }, { "done": true }] },
+          { "label": "閉上眼睛，直接走過這個房間", "do": [{ "say": "你閉著眼走完了，什麼也沒拿。" }, { "done": true }] }] } }
       ] },
     { "w": 0.2, "where": "wall", "name": "門後的房間", "cat": "空間", "size": [0.15, 2.2, 1.0], "color": "#7a6a4a", "doneSay": "門已經關上了。",
       "props": [
@@ -687,21 +705,21 @@
   "shops": {
     "window": { "title": "形狀有點怪異的窗戶", "say": "玻璃另一邊是一片模糊的光，看不出是什麼。",
       "offers": [
-        { "label": "湊近往外看（感知檢定）", "once": true, "do": [{ "check": "WIS",
+        { "label": "湊近往外看", "once": true, "do": [{ "check": "WIS",
             "ok":   [{ "say": "你擦掉玻璃上的霧氣，窗外的景象清晰了起來。", "cls": "ok" }, { "peek": true }],
             "fail": [{ "say": "玻璃上全是水氣，什麼也看不清。", "cls": "bad" }] }] },
         { "label": "爬過窗戶", "do": [{ "say": "你翻過窗台，落在另一頭。" }, { "advance": true }] }
       ] },
     "door": { "title": "一扇不自然的門", "say": "門縫裡沒有光，也沒有聲音。",
       "offers": [
-        { "label": "把耳朵貼上去聽（感知檢定）", "once": true, "do": [{ "check": "WIS",
+        { "label": "把耳朵貼上去聽", "once": true, "do": [{ "check": "WIS",
             "ok":   [{ "say": "你聽出門後的動靜。", "cls": "ok" }, { "peek": true }],
             "fail": [{ "say": "你什麼也沒聽到，只覺得耳朵裡嗡嗡的。", "cls": "bad" }] }] },
         { "label": "推開門", "do": [{ "advance": true }] }
       ] },
     "lost": { "title": "迷路的倖存者", "say": "他說他走了很久，已經不記得自己是從哪裡來的。",
       "offers": [
-        { "label": "說服他告訴你路（魅力）", "do": [{ "check": "CHA",
+        { "label": "說服他告訴你路", "do": [{ "check": "CHA",
             "ok":   [{ "say": "他顫抖著，指了指某個方向。", "cls": "ok" }, { "route": true }],
             "fail": [{ "say": "他把頭埋進膝蓋，不再理你。", "cls": "bad" }] }, { "done": true }] },
         { "label": "給他一瓶杏仁水", "pay": ["almond"], "do": [{ "say": "他一口氣喝完，把一張皺巴巴的紙塞給你。", "cls": "ok" }, { "give": "note" }, { "done": true }] },
@@ -714,7 +732,7 @@
     "keeper": { "title": "自稱管理員的人", "say": "他笑得很禮貌，但手電筒的光始終沒有照到自己。",
       "offers": [
         { "label": "相信他，跟他走", "once": true, "do": [{ "say": "他領著你走過一條又一條長廊，最後推開了一扇門。" }, { "shop": "backroom" }] },
-        { "label": "仔細觀察他（智慧）", "do": [{ "check": "INT",
+        { "label": "仔細觀察他", "do": [{ "check": "INT",
             "ok":   [{ "say": "你發現他的影子一直在繞圈，他看出被識破，轉身消失了。", "cls": "ok" }],
             "fail": [{ "san": 2, "why": "你沒看出破綻，心裡卻一直發毛。" }] }, { "done": true }] }
       ] },
@@ -733,19 +751,19 @@
       ] },
     "vend": { "title": "倒地的販賣機", "say": "投幣口卡著什麼，機身底下好像壓著瓶子。",
       "offers": [
-        { "label": "用力把它推正（力量）", "do": [{ "check": "STR",
+        { "label": "用力把它推正", "do": [{ "check": "STR",
             "ok":   [{ "say": "你把它推正，砰的一聲，掉出一瓶杏仁水。", "cls": "ok" }, { "give": "almond" }],
             "fail": [{ "san": 1, "why": "你的手被玻璃劃了一道口子。" }, { "status": "bleed" }] }, { "done": true }] },
-        { "label": "伸手摸投幣口（智慧）", "do": [{ "check": "INT",
+        { "label": "伸手摸投幣口", "do": [{ "check": "INT",
             "ok":   [{ "say": "你摳出了卡在裡面的硬幣。", "cls": "ok" }, { "give": "coin" }],
             "fail": [{ "san": 1, "why": "投幣口深處有什麼冰涼的東西碰了你一下。" }] }, { "done": true }] }
       ] },
     "narrow": { "title": "越來越窄的走廊", "say": "再不過去，就要被夾住了。",
       "offers": [
-        { "label": "用力擠過去（力量）", "do": [{ "check": "STR",
+        { "label": "用力擠過去", "do": [{ "check": "STR",
             "ok":   [{ "say": "你硬是擠了過去，衣服被刮破了一道口子。", "cls": "ok" }],
             "fail": [{ "san": 3, "why": "你被夾在兩面牆中間，掙脫時有東西掉了。" }, { "lose": 1 }] }, { "done": true }] },
-        { "label": "側身慢慢挪（敏捷）", "do": [{ "check": "DEX",
+        { "label": "側身慢慢挪", "do": [{ "check": "DEX",
             "ok":   [{ "say": "你吸氣縮腹，一寸一寸地挪了過去。", "cls": "ok" }],
             "fail": [{ "san": 3, "why": "你被夾在兩面牆中間，掙脫時有東西掉了。" }, { "lose": 1 }] }, { "done": true }] }
       ] },
@@ -764,7 +782,7 @@
       ] },
     "tea": { "title": "空房間的茶會", "say": "茶是熱的，椅子是空的。",
       "offers": [
-        { "label": "坐下喝茶（魅力檢定）", "do": [{ "check": "CHA",
+        { "label": "坐下喝茶", "do": [{ "check": "CHA",
             "ok":   [{ "say": "有人替你倒了茶，聲音很溫柔。你覺得緊繃的肩膀慢慢放鬆了。", "cls": "ok" }, { "heal": 8 }],
             "fail": [{ "say": "談笑聲忽然停了，所有的椅子同時轉向你。", "cls": "bad" }, { "san": 3, "why": "沒有人說話，但你感覺到被注視。" }] }, { "done": true }] }
       ] },
@@ -816,7 +834,7 @@
     "waiter": { "title": "無臉服務生", "say": "一瓶是灰的，一瓶是藍的。他托著盤，一動也不動。",
       "offers": [
         { "label": "拿走灰色的杏仁水", "get": "almond", "do": [{ "set": "marked" }, { "say": "他的頭轉向你——雖然他沒有臉。", "cls": "bad" }, { "done": true }] },
-        { "label": "用 1 枚硬幣換藍瓶（魅力檢定）", "pay": ["coin"], "do": [{ "check": "CHA",
+        { "label": "用 1 枚硬幣換藍瓶", "pay": ["coin"], "do": [{ "check": "CHA",
             "ok":   [{ "say": "他把藍瓶放進你手心，指尖冰涼。", "cls": "ok" }, { "give": "almond_blue" }],
             "fail": [{ "say": "他收下硬幣，連同托盤一起端走了。", "cls": "bad" }] }, { "done": true }] }
       ] },

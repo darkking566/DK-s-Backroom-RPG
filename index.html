@@ -147,9 +147,11 @@ function tickStatus(){ // 進新房間時：先發作，再倒數；回傳 false
   }
   renderStats();
 }
+const odds = (stat, dc) => chance(R.stats[stat] + statMod(stat), dc, 3*up('bonus'));
+// 選項後面的標籤：（感知 DC14），有「敏銳直覺」再加成功率
+const checkTag = c => c ? `（${STATS[c.check]} DC${dcOf(c.dc, c.check)}${R.hint ? ` · ${odds(c.check, dcOf(c.dc, c.check))}%` : ''}）` : '';
 function roll(stat, dc){
-  const bonus = 3*up('bonus');
-  const target = chance(R.stats[stat] + statMod(stat), dc, bonus), r = d(100), ok = r<=target;
+  const target = odds(stat, dc), r = d(100), ok = r<=target;
   const grade = r<=target/5 ? '極限成功' : r<=target/2 ? '困難成功' : ok ? '成功' : r>=96 ? '大失敗' : '失敗';
   log(`【${STATS[stat]} 檢定 DC${dc}】擲 ${r} / ${target} → ${grade}`, ok?'ok':'bad');
   return ok;
@@ -215,13 +217,14 @@ let shopCtx = null; // {def, obj}：目前開著的商店與那個商人物件�
 const price = (o, obj) => (obj.cheap && o.payCheap) || o.pay || [];
 const afford = (o, obj) => { const p = price(o, obj); return p.every(id=>R.inv.filter(x=>x===id).length >= p.filter(x=>x===id).length) && R.san > (o.san||0); };
 const bundle = ids => Object.entries(ids.reduce((m,id)=>(m[id]=(m[id]||0)+1, m), {})).map(([id,n])=>itemName(id)+(n>1?`×${n}`:'')).join('、');
-function openShop(id, obj){ shopCtx = {def: LEVEL0.shops[id], obj}; renderShop(); $('panel').style.display = 'block'; }
+// id 是 LEVEL0.shops 的名字，或直接寫在物件裡的 {title, offers}
+function openShop(id, obj){ shopCtx = {def: typeof id==='string' ? LEVEL0.shops[id] : id, obj}; renderShop(); $('panel').style.display = 'block'; }
 function renderShop(){
   const {def, obj} = shopCtx;
   $('panel').innerHTML = `<h3>${def.title}</h3><p>${def.say||''}</p>`
-    + def.offers.map((o,i)=>`<div class="row"><span>${o.label || `${bundle([].concat(o.get))} ← ${[bundle(price(o,obj)), o.san ? `SAN -${o.san}` : ''].filter(Boolean).join('、')}`}</span>`
+    + def.offers.map((o,i)=>`<div class="row"><span>${o.label ? o.label + checkTag(firstCheck(o.do)) : `${bundle([].concat(o.get))} ← ${[bundle(price(o,obj)), o.san ? `SAN -${o.san}` : ''].filter(Boolean).join('、')}`}</span>`
         + `<button data-act="shopBuy" data-arg="${i}" ${obj.used?.[def.title+i] || !afford(o,obj) ? 'disabled' : ''}>${o.get||o.pay||o.san ? '成交' : '選擇'}</button></div>`).join('')
-    + (def.haggle && !obj.haggled ? `<button data-act="haggle">討價還價（${STATS[def.haggle]}）</button>` : '')
+    + (def.haggle && !obj.haggled ? `<button data-act="haggle">討價還價${checkTag({check:def.haggle, dc:def.haggleDc})}</button>` : '')
     + `<button data-act="close">離開</button>`;
 }
 // 情報：還要幾個房間才到出口，以及下一個房間裡有什麼
@@ -619,7 +622,7 @@ function firstCheck(acts){
 function hover(e){
   const o = !R || e.target.closest('#panel,#next,#gain') ? null : pick(e), h=$('hover');
   h.style.display=o?'block':'none';
-  if(o){ h.textContent = o.userData.name + (R.hint && (c => c ? `（${STATS[c.check]} DC${dcOf(c.dc, c.check)}）` : '')(firstCheck(o.userData.spec.onClick)) || ''); h.style.left=e.clientX+14+'px'; h.style.top=e.clientY+14+'px'; }
+  if(o){ h.textContent = o.userData.name + (R.hint ? checkTag(firstCheck(o.userData.spec.onClick)) : ''); h.style.left=e.clientX+14+'px'; h.style.top=e.clientY+14+'px'; }
   document.body.style.cursor = o?'pointer':'default';
 }
 // ---------- 聚焦：點到互動點時，鏡頭拉近、轉向它；面板關掉、點空白處、按 Esc 或過一會兒（沒有面板時）就拉回來 ----------
