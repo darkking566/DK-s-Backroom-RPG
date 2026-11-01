@@ -1,6 +1,16 @@
 # Level 0 事件設計稿（50 種）
 
-僅設計，尚未實作。規則沿用現有 `data/level0.json` 的事件語法：`say / san / check(STR·CON·DEX·INT·WIS·CHA) / give / rand / ifHas / need / goto / end / done`，道具沿用 `data/items.json`。
+僅設計，尚未實作。規則沿用現有 `data/level0.json` 的事件語法：`say / san / check(STR·CON·DEX·INT·WIS·CHA，可加 dc；不寫用關卡 dc) / give / rand / ifHas / need / goto / end / done`，道具沿用 `data/items.json`。
+
+**樓層規則**：關卡 JSON 可加 `"rules": [...]`，進關時會公告、狀態欄會列出。每條規則有 `name`、`desc`，以及下列任意效果：
+- `"dc": { "CHA": 3 }`：這層的魅力檢定 DC +3（可以是負數）
+- `"onRoom": [動作], "chance": 0.3`：每進一間房，30% 機率執行這些動作（不寫 chance 就是每間都執行）
+- `"onFail": [動作]`：任何檢定最後失敗時執行（例如「保持安靜」：失敗就發出聲音、被追）
+- `"noReroll": true`：這層不能重擲
+
+範例：`{ "name": "保持安靜", "desc": "失敗的動作會發出聲音。", "onFail": [{ "san": 2, "why": "黑暗中有東西朝聲音轉了過來。" }] }`
+
+**狀態效果**：定義在 `data/statuses.json`（`name`、`desc`、`stats` 屬性加減、`onRoom` 每進一間房執行的動作、`rooms` 持續幾間房，不寫就不會自己好）。動作 `{ "status": "cold" }` 讓玩家陷入狀態（已經有就刷新時間），`{ "cure": "cold" }` 治療（可給陣列，`true` = 全部）。道具 `use` 也可以寫 `cure`。
 
 **規模**：S＝現有房間＋1~2 個道具；M＝需改房間結構或特殊燈光；L＝需獨立場景。
 **稀有度**：常＝權重 3~4、少＝2、稀＝1（對應 `events` 的 `w`）。

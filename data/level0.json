@@ -14,6 +14,7 @@
   },
   "noTransitionBefore": 3,
   "enterChance": 0.45,
+  "dc": 12,
   "intro": "你從現實的縫隙裡掉了出來。發黃的牆紙、濕透的地毯、日光燈的嗡鳴。找到那面忽明忽暗的牆。",
   "exit": {
     "name": "忽明忽暗的牆", "cat": "換層",
@@ -154,6 +155,8 @@
         { "rand": [
           { "w": 3, "do": [{ "give": "bar" }] },
           { "w": 2, "do": [{ "give": "earplugs" }] },
+          { "w": 2, "do": [{ "give": "bandage" }] },
+          { "w": 2, "do": [{ "give": "heatpack" }] },
           { "w": 1, "do": [{ "give": "candy_silver" }] },
           { "w": 2, "do": [{ "say": "全是廢紙和碎玻璃。" }] }] },
         { "done": true }
@@ -194,7 +197,7 @@
         { "say": "一小塊特別濕的地毯正中央，立著一瓶藍色的杏仁水。" },
         { "check": "DEX",
           "ok":   [{ "say": "你踮著腳尖走過去，穩穩地把它拿了起來。", "cls": "ok" }, { "give": "almond_blue" }, { "done": true }],
-          "fail": [{ "say": "地毯往下陷，水一下子淹到了膝蓋。", "cls": "bad" }, { "san": 3, "why": "冰冷的水讓你一陣發抖。" }, { "lose": 1 }, { "done": true }] }
+          "fail": [{ "say": "地毯往下陷，水一下子淹到了膝蓋。", "cls": "bad" }, { "san": 3, "why": "冰冷的水讓你一陣發抖。" }, { "status": "cold" }, { "lose": 1 }, { "done": true }] }
       ] },
     { "w": 0.8, "where": "wall", "name": "越來越窄的走廊", "cat": "空間", "size": [1.0, 2.8, 0.5], "color": "#b5a53d", "doneSay": "走廊已經恢復原狀。",
       "props": [
@@ -306,7 +309,7 @@
         { "say": "地毯滲出水來，水位一點一點漫過腳踝，水面映著晃動的燈光。" },
         { "check": "DEX",
           "ok":   [{ "say": "你穩住了身體，順手撈起水面上漂著的東西。", "cls": "ok" }, { "give": "bar" }, { "done": true }],
-          "fail": [{ "san": 1, "why": "你滑了一跤，濕冷的水灌進鞋裡。" }, { "done": true }] }
+          "fail": [{ "san": 1, "why": "你滑了一跤，濕冷的水灌進鞋裡。" }, { "status": "cold" }, { "done": true }] }
       ] },
     { "w": 0.5, "where": "wall", "name": "牆後的電視雜訊", "cat": "氛圍", "size": [0.1, 1.2, 1.4], "color": "#444455", "doneSay": "雜訊已經停了。",
       "props": [
@@ -370,7 +373,7 @@
         { "say": "天花板的霉斑像花一樣綻開，細小的孢子飄了下來。" },
         { "check": "CON",
           "ok":   [{ "say": "你屏住氣快步通過，在霉堆底下摸到一瓶杏仁水。", "cls": "ok" }, { "give": "almond" }, { "done": true }],
-          "fail": [{ "san": 2, "why": "孢子嗆進喉嚨，你咳得眼前發花。" }, { "done": true }] }
+          "fail": [{ "san": 2, "why": "孢子嗆進喉嚨，你咳得眼前發花。" }, { "status": "dizzy" }, { "done": true }] }
       ] },
     { "w": 0.2, "where": "wall", "name": "空房間的茶會", "cat": "氛圍", "size": [0.9, 0.75, 0.9], "color": "#6a4a2a", "doneSay": "桌上的茶已經涼了。",
       "props": [
@@ -732,7 +735,7 @@
       "offers": [
         { "label": "用力把它推正（力量）", "do": [{ "check": "STR",
             "ok":   [{ "say": "你把它推正，砰的一聲，掉出一瓶杏仁水。", "cls": "ok" }, { "give": "almond" }],
-            "fail": [{ "san": 1, "why": "你的手被玻璃劃了一道口子。" }] }, { "done": true }] },
+            "fail": [{ "san": 1, "why": "你的手被玻璃劃了一道口子。" }, { "status": "bleed" }] }, { "done": true }] },
         { "label": "伸手摸投幣口（智慧）", "do": [{ "check": "INT",
             "ok":   [{ "say": "你摳出了卡在裡面的硬幣。", "cls": "ok" }, { "give": "coin" }],
             "fail": [{ "san": 1, "why": "投幣口深處有什麼冰涼的東西碰了你一下。" }] }, { "done": true }] }
@@ -748,7 +751,7 @@
       ] },
     "backroom": { "title": "門後的房間", "say": "那個背影的衣服和你一模一樣。",
       "offers": [
-        { "label": "叫他", "do": [{ "say": "他慢慢轉過身，臉是空的，卻用你的聲音說了「你好」。", "cls": "bad" }, { "san": 5, "why": "你說不出話來。" }, { "done": true }] },
+        { "label": "叫他", "do": [{ "say": "他慢慢轉過身，臉是空的，卻用你的聲音說了「你好」。", "cls": "bad" }, { "san": 5, "why": "你說不出話來。" }, { "status": "dread" }, { "done": true }] },
         { "label": "關上門，不回頭", "do": [{ "check": "WIS",
             "ok":   [{ "say": "你關上了門，一次也沒有回頭。", "cls": "ok" }],
             "fail": [{ "san": 3, "why": "門縫裡的背影，在門關上前轉了過來。" }] }, { "done": true }] }
@@ -853,6 +856,8 @@
       "offers": [
         { "get": "almond", "pay": ["bar", "bar"], "payCheap": ["bar"] },
         { "get": "earplugs", "pay": ["almond"], "payCheap": ["bar"] },
+        { "get": "bandage", "pay": ["bar"] },
+        { "get": "heatpack", "pay": ["bar"] },
         { "get": "candy_silver", "pay": ["almond", "bar"], "payCheap": ["almond"] },
         { "get": "flashlight", "pay": ["almond", "almond", "bar"], "payCheap": ["almond", "bar"] }
       ] },

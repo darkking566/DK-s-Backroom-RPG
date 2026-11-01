@@ -74,9 +74,9 @@
 <script>
 // ---------- 資料、存檔、一輪冒險的狀態 ----------
 const STATS = {STR:'力量', DEX:'敏捷', WIS:'感知', INT:'智慧', CHA:'魅力', CON:'體質'};
-const BASE = 10, CAP = 18, WIN_BONUS = 30;
+const BASE = 10, CAP = 18, WIN_BONUS = 30, GROW = 2; // GROW：每往下穿越一層可分配的屬性點
 const META_KEY = 'backrooms_meta_v1';
-let CHARS, ITEMS, UPGRADES, LEVEL0;
+let CHARS, ITEMS, UPGRADES, LEVEL0, STATUS;
 const up = id => meta.up[id]||0;
 const slotCount = () => 3 + up('slots');
 let meta = {remnant:0, unlocked:[], vault:[], up:{}, pack:[], runs:0}; // 局外成長，存在 localStorage
@@ -111,25 +111,59 @@ addEventListener('keydown', e=>{ if(gainQ.length){ e.stopImmediatePropagation();
 function renderStats(){
   if(!R) return;
   $('stats').innerHTML = `<b style="width:auto">${R.char.name}</b><br>`
-    + Object.entries(STATS).map(([k,n])=>`<b>${n}</b>${R.stats[k]}`).join('<br>')
+    + Object.entries(STATS).map(([k,n])=>{ const m = statMod(k); return `<b>${n}</b>${R.stats[k]+m}${m ? `<small>（${m>0?'+':''}${m}）</small>` : ''}`; }).join('<br>')
     + `<br><b>SAN</b>${R.san}/${R.sanMax}`
     + (R.char.ability ? `<br>✦ ${R.char.ability.name}` : '')
-    + (R.rerollMax ? `<br>重擲 ${R.rerolls}/${R.rerollMax}` : '');
+    + (R.rerollMax ? `<br>重擲 ${R.rerolls}/${R.rerollMax}` : '')
+    + rules().map(r=>`<br>⚠ ${r.name}`).join('')
+    + Object.entries(R.status).map(([id,n])=>`<br><span title="${STATUS[id].desc}">✖ ${STATUS[id].name}${n===null ? '' : ` ${n}`}</span>`).join('');
 }
 
-// d100 ≤ 值×5 成功；≤一半 困難成功；≤五分之一 極限成功；≥96 且未成功為大失敗
-function roll(stat){
-  const target = R.stats[stat]*5 + 3*up('bonus') + R.inv.reduce((n,id)=>n+(ITEMS[id].passive?.[stat]||0),0), r = d(100), ok = r<=target;
-  const level = r<=target/5 ? '極限成功' : r<=target/2 ? '困難成功' : ok ? '成功' : r>=96 ? '大失敗' : '失敗';
-  log(`【${STATS[stat]} 檢定】擲 ${r} / ${target} → ${level}`, ok?'ok':'bad');
+// 成功率 = 50% + (屬性 − DC)×5% + 加成，夾在 5~95%；d100 ≤ 成功率為成功，≤一半困難成功，≤五分之一極限成功，≥96 且未成功為大失敗
+// DC：事件寫 "dc" 用事件的，否則用關卡的 "dc"，都沒有就是 BASE（10）
+const chance = (v, dc, bonus = 0) => Math.max(5, Math.min(95, 50 + (v-dc)*5 + bonus));
+// 樓層規則（關卡的 "rules"）：dc 某屬性檢定 DC 加減 / onRoom 每進一間房有 chance 機率執行 / onFail 檢定失敗後執行 / noReroll 不能重擲
+const rules = () => level?.rules || [];
+const dcOf = (dc, stat) => (dc ?? level?.dc ?? BASE) + rules().reduce((n,r)=>n+(r.dc?.[stat]||0), 0);
+// 狀態效果（data/statuses.json）：R.status = {id: 剩幾間房}，null = 不會自己好；stats 加減屬性、onRoom 每進一間房執行
+// 道具的 passive 也算在這裡：帶在背包裡就加屬性點
+const statMod = stat => Object.keys(R.status).reduce((n,id)=>n+(STATUS[id].stats?.[stat]||0), 0)
+  + R.inv.reduce((n,id)=>n+(ITEMS[id].passive?.[stat]||0), 0);
+function addStatus(id){
+  const st = STATUS[id], fresh = !(id in R.status);
+  R.status[id] = st.rooms ?? null; // 重複中同一個狀態只刷新時間
+  log(fresh ? `陷入「${st.name}」：${st.desc}` : `「${st.name}」又加重了。`, 'bad'); renderStats();
+}
+function cure(what){ // what：狀態 id、id 陣列，或 true = 全部
+  for(const id of what===true ? Object.keys(R.status) : [].concat(what))
+    if(id in R.status){ delete R.status[id]; log(`「${STATUS[id].name}」好了。`,'ok'); }
+  renderStats();
+}
+function tickStatus(){ // 進新房間時：先發作，再倒數；回傳 false 代表人沒了
+  for(const id of Object.keys(R.status)){
+    const st = STATUS[id];
+    if(st.onRoom && run(st.onRoom, {})===false) return false;
+    if(R.status[id]!==null && --R.status[id]<=0){ delete R.status[id]; log(`「${st.name}」慢慢好轉了。`,'ok'); }
+  }
+  renderStats();
+}
+function roll(stat, dc){
+  const bonus = 3*up('bonus');
+  const target = chance(R.stats[stat] + statMod(stat), dc, bonus), r = d(100), ok = r<=target;
+  const grade = r<=target/5 ? '極限成功' : r<=target/2 ? '困難成功' : ok ? '成功' : r>=96 ? '大失敗' : '失敗';
+  log(`【${STATS[stat]} 檢定 DC${dc}】擲 ${r} / ${target} → ${grade}`, ok?'ok':'bad');
   return ok;
 }
-function check(stat){
-  if(roll(stat)) return true;
-  if(R.rerolls<=0) return false;
-  R.rerolls--; renderStats();
-  log('使用重擲');
-  return roll(stat);
+function check(stat, dc){
+  dc = dcOf(dc, stat);
+  if(roll(stat, dc)) return true;
+  if(R.rerolls>0 && !rules().some(r=>r.noReroll)){
+    R.rerolls--; renderStats();
+    log('使用重擲');
+    if(roll(stat, dc)) return true;
+  }
+  for(const r of rules()) if(r.onFail && run(r.onFail, {})===false) break;
+  return false;
 }
 
 // ---------- 背包 / 靈魂保險箱面板（冒險中） ----------
@@ -137,7 +171,9 @@ function renderPanel(){
   const row = (id,i,act,label)=>`<div class="row" title="${ITEMS[id].desc||''}">${itemName(id)} <small>(${ITEMS[id].value} R)</small>`
     + (ITEMS[id].use && act==='toVault' ? `<button data-act="use" data-arg="${i}">使用</button>` : '')
     + `<button data-act="${act}" data-arg="${i}">${label}</button></div>`;
-  $('panel').innerHTML = `<h3>背包 <small>（冒險結束時會被換成 Remnant）</small></h3>`
+  $('panel').innerHTML = (R.points ? `<h3>穿越樓層讓你變強了：還有 ${R.points} 點可以分配</h3>`
+      + Object.entries(STATS).map(([k,n],i)=>`<button data-act="grow" data-arg="${i}">${n} ${R.stats[k]} → ${R.stats[k]+1}</button>`).join('') : '')
+    + `<h3>背包 <small>（冒險結束時會被換成 Remnant）</small></h3>`
     + (R.inv.map((id,i)=>row(id,i,'toVault','放進保險箱')).join('') || '<p>空的</p>')
     + `<h3>靈魂保險箱 ${R.vault.length}/${slotCount()} <small>（一定帶得出去）</small></h3>`
     + (R.vault.map((id,i)=>row(id,i,'toInv','拿出來')).join('') || '<p>空的</p>')
@@ -146,14 +182,16 @@ function renderPanel(){
 function syncVault(){ meta.vault = [...R.vault]; saveMeta(); renderPanel(); } // 保險箱一有變動就存檔
 const panelActs = {
   toVault(i){ if(R.vault.length>=slotCount()) return log('保險箱滿了。','bad'); R.vault.push(R.inv.splice(i,1)[0]); syncVault(); },
+  grow(i){ const k = Object.keys(STATS)[i]; if(!R.points) return; R.stats[k]++; R.points--; log(`${STATS[k]} +1`,'ok'); renderStats(); renderPanel(); },
   toInv(i){ R.inv.push(R.vault.splice(i,1)[0]); syncVault(); },
   use(i){
     const id = R.inv.splice(i,1)[0], u = ITEMS[id].use;
     if(u.san){ R.san = Math.min(R.sanMax, R.san+u.san); log(`使用${itemName(id)}，SAN +${u.san}`,'ok'); }
+    if(u.cure) cure(u.cure);
     if(u.stat){ R.stats[u.stat] += u.plus; log(`使用${itemName(id)}，${STATS[u.stat]} +${u.plus}（本局）`,'ok'); }
     renderStats(); renderPanel();
   },
-  close(){ shopCtx = null; $('panel').style.display='none'; unfocus(); },
+  close(){ if(R?.points) return openPanel(); shopCtx = null; $('panel').style.display='none'; unfocus(); }, // 點數沒分完不讓關
   shopBuy(i){
     const {def, obj} = shopCtx, o = def.offers[i];
     if(!afford(o, obj) || obj.used?.[def.title+i]) return;
@@ -167,8 +205,8 @@ const panelActs = {
   },
   haggle(){
     const {def, obj} = shopCtx; obj.haggled = true;
-    if(check(def.haggle)){ obj.cheap = true; log('他嘆口氣，把價錢往下壓了一些。','ok'); } else log('他不為所動。','bad');
-    renderShop();
+    if(check(def.haggle, def.haggleDc)){ obj.cheap = true; log('他嘆口氣，把價錢往下壓了一些。','ok'); } else log('他不為所動。','bad');
+    if(R) renderShop(); // 樓層規則的 onFail 可能讓理智歸零
   }
 };
 
@@ -192,7 +230,8 @@ function routeHint(){
   log(left>0 ? `他低聲說：「再往前走 ${left} 間就是出口。下一間裡有${level.stages[stageIdx+1].name}。」` : '他搖搖頭：「出口就在你眼前。」', 'ok');
 }
 $('panel').onclick = e=>{ const b=e.target.closest('[data-act]'); if(b) panelActs[b.dataset.act](+b.dataset.arg); };
-$('vaultBtn').onclick = ()=>{ shopCtx = null; renderPanel(); $('panel').style.display='block'; };
+const openPanel = ()=>{ shopCtx = null; renderPanel(); $('panel').style.display='block'; };
+$('vaultBtn').onclick = openPanel;
 
 // ---------- 選單：主畫面 / 選角 / 分配屬性 / 結算 ----------
 const menu = $('menu');
@@ -282,13 +321,13 @@ const menuActs = {
     screen(`<h2>${draft.char.name}　分配屬性</h2><p>剩餘自由點數：<b>${draft.pool}</b>（單項上限 ${CAP}，不能低於起始值）</p>`
       + Object.entries(STATS).map(([k,n])=>`<div class="row"><span class="lbl">${n}</span>`
           + `<button data-act="adj" data-arg="${k}:-1" ${s[k]<=draft.base[k]?'disabled':''}>−</button><b>${s[k]}</b>`
-          + `<button data-act="adj" data-arg="${k}:1" ${draft.pool<1||s[k]>=CAP?'disabled':''}>＋</button><small>檢定成功率 ${s[k]*5}%</small></div>`).join('')
+          + `<button data-act="adj" data-arg="${k}:1" ${draft.pool<1||s[k]>=CAP?'disabled':''}>＋</button><small>Level 0 檢定（DC${LEVEL0.dc ?? BASE}）成功率 ${chance(s[k],LEVEL0.dc ?? BASE)}%</small></div>`).join('')
       + `<p>SAN 上限：${sanMax(s)}（(體質＋感知)×2.5）</p><p>${abilityText(draft.char.ability)}</p><p>預購補給：${meta.pack.map(itemName).join('、') || '無'}</p>`
       + `<button data-act="select">返回</button><button data-act="start">開始冒險</button>`);
   },
   start(){
     const c = draft.char, s = draft.stats;
-    R = {char:c, stats:s, san:sanMax(s), sanMax:sanMax(s), rerolls:0, inv:[...(c.ability?.startItems||[]), ...Array(up('supply')).fill('almond'), ...meta.pack], vault:[...meta.vault], flags:{}, hint:up('hint')>0};
+    R = {char:c, stats:s, san:sanMax(s), sanMax:sanMax(s), rerolls:0, inv:[...(c.ability?.startItems||[]), ...Array(up('supply')).fill('almond'), ...meta.pack], vault:[...meta.vault], flags:{}, status:{}, hint:up('hint')>0};
     meta.pack = []; saveMeta();
     R.rerolls = R.rerollMax = (c.ability?.reroll||0) + up('reroll');
     $('log').innerHTML = ''; menu.style.display = 'none'; $('vaultBtn').style.display = 'block';
@@ -313,14 +352,17 @@ function endRun(kind, text){
 // 動作：say / check(ok,fail) / san+why / give / need(else) / done / goto / end / heal / route / shop。回傳 false 代表中止。
 function run(actions, obj){
   for(const a of actions){
+    if(!R) return false; // 樓層規則的 onFail 可能已經把人弄死了
     if(a.say) log(a.say, a.cls);
-    if(a.check){ if(run(check(a.check) ? a.ok||[] : a.fail||[], obj)===false) return false; }
+    if(a.check){ if(run(check(a.check, a.dc) ? a.ok||[] : a.fail||[], obj)===false) return false; }
     if(a.san){
       const n = Math.max(1, d(a.san) - (R.char.ability?.sanReduce||0));
       R.san = Math.max(0, R.san-n); log(`${a.why||''}　SAN -${n}`,'bad'); renderStats();
       if(R.san===0){ endRun('death'); return false; }
     }
     if(a.give) gain(a.give);
+    if(a.status) addStatus(a.status);
+    if(a.cure) cure(a.cure);
     if(a.need && ![].concat(a.need).some(id=>R.inv.includes(id))){ run(a.else||[], obj); return false; }
     if(a.rand && run(weighted(a.rand).do, obj)===false) return false;
     if(a.ifHas && run(R.inv.includes(a.ifHas) ? a.then||[] : a.else||[], obj)===false) return false;
@@ -342,7 +384,7 @@ function run(actions, obj){
     if(a.path !== undefined){ level.stages[stageIdx+1] = level.stages[stageIdx].paths[a.path]; advance(); return false; } // 岔路口選一條
     if(a.peek) log(`那一頭是：${level.stages[stageIdx+1].name}。`,'ok');
     if(a.lit) R.lit = a.lit; // 接下來幾次事件不抽停電類（events 裡標 dark 的）
-    if(a.goto){ loadLevel(LEVEL0.stubs?.[a.goto] ? stubLevel(LEVEL0.stubs[a.goto]) : a.goto); return false; }
+    if(a.goto){ R.points = (R.points||0) + GROW; openPanel(); loadLevel(LEVEL0.stubs?.[a.goto] ? stubLevel(LEVEL0.stubs[a.goto]) : a.goto); return false; }
     if(a.end){ endRun(a.end, a.text); return false; }
   }
 }
@@ -441,6 +483,8 @@ async function loadLevel(id){ // id 可以是 levels/ 底下的檔名，或直�
   try{ level = typeof id==='string' ? await fetchLevel(id) : id; }
   catch(e){ return log(`載入 levels/${id}.json 失敗。請用 http 伺服器開啟，不要直接開檔案。`,'bad'); }
   if(level.intro) log(level.intro);
+  if(R) for(const r of rules()) log(`⚠ 樓層規則【${r.name}】${r.desc||''}`,'bad');
+  renderStats();
   enterStage(0, true);
 }
 const updateProg = () => { $('prog').textContent = R ? `${level.name}　${stageIdx+1} / ${level.stages.length}` : ''; };
@@ -453,6 +497,8 @@ function enterStage(i, quiet){
   if(!R || quiet) return;
   $('log').innerHTML = ''; // 視覺小說式：文字框只留這個房間的字
   if(R.haunt>0){ R.haunt--; if(run([{san:1, why:'那顆眼睛的視線還黏在你背上。'}])===false) return; }
+  if(tickStatus()===false) return;
+  for(const r of rules()) if(r.onRoom && Math.random() < (r.chance ?? 1) && run(r.onRoom, {})===false) return;
   if(level.events && Math.random() < level.enterChance){
     const pool = R.lit>0 ? level.events.filter(e=>!e.dark) : level.events;
     if(R.lit>0) R.lit--;
@@ -509,7 +555,7 @@ function genLevel0(cfg){
   ex.objects.push({...cfg.exit, pos:[(Math.random()*2-1)*Math.max(0,W/2-1.8), -(D-.12)], size:[2,2.6,.1], color:'#fff2a0', flicker:true});
   stages.push(ex);
   const fresh = () => draw() || (used.clear(), draw());
-  return {name:'Level 0', intro:cfg.intro, stages, events:cfg.events, enterChance:cfg.enterChance,
+  return {name:'Level 0', intro:cfg.intro, stages, events:cfg.events, enterChance:cfg.enterChance, dc:cfg.dc, rules:cfg.rules,
     more: n => Array.from({length:n}, ()=>makeStage(fresh())), // 繞路多出來的房間、岔路口的其他選項
     hints: cfg.pathHints};
 }
@@ -536,7 +582,7 @@ function prepare(s, i){
 }
 
 // 還沒做的關卡先用一個小房間頂著：房間盡頭一扇門，點了就結算通關
-const stubLevel = s => ({name:s.name, intro:s.intro, stages:[{theme:3, size:[6,2.3], decor:[],
+const stubLevel = s => ({name:s.name, intro:s.intro, dc:s.dc, rules:s.rules, stages:[{theme:3, size:[6,2.3], decor:[],
   objects:[{name:'尚未完成的出口', pos:[0,-2.15], size:[1.8,2.4,.2], color:'#6a3a2a',
     onClick:[{say:'這一層還在施工。門後是光。'}, {end:'win', text:s.exitText}]}]}]});
 
@@ -568,12 +614,12 @@ function pick(e){
 }
 // 找出這個物件第一個要擲的屬性（給「敏銳直覺」提示用）
 function firstCheck(acts){
-  for(const a of acts||[]){ const r = a.check || firstCheck(a.then) || firstCheck(a.else); if(r) return r; }
+  for(const a of acts||[]){ const r = a.check ? a : firstCheck(a.then) || firstCheck(a.else); if(r) return r; }
 }
 function hover(e){
   const o = !R || e.target.closest('#panel,#next,#gain') ? null : pick(e), h=$('hover');
   h.style.display=o?'block':'none';
-  if(o){ h.textContent = o.userData.name + (R.hint && firstCheck(o.userData.spec.onClick) ? `（${STATS[firstCheck(o.userData.spec.onClick)]}）` : ''); h.style.left=e.clientX+14+'px'; h.style.top=e.clientY+14+'px'; }
+  if(o){ h.textContent = o.userData.name + (R.hint && (c => c ? `（${STATS[c.check]} DC${dcOf(c.dc, c.check)}）` : '')(firstCheck(o.userData.spec.onClick)) || ''); h.style.left=e.clientX+14+'px'; h.style.top=e.clientY+14+'px'; }
   document.body.style.cursor = o?'pointer':'default';
 }
 // ---------- 聚焦：點到互動點時，鏡頭拉近、轉向它；面板關掉、點空白處、按 Esc 或過一會兒（沒有面板時）就拉回來 ----------
@@ -624,7 +670,7 @@ function frame(){
 }
 async function boot(){
   loadMeta();
-  try{ [CHARS, ITEMS, UPGRADES, LEVEL0] = await Promise.all(['data/characters.json','data/items.json','data/upgrades.json','data/level0.json'].map(u=>fetch(u).then(r=>r.json()))); }
+  try{ [CHARS, ITEMS, UPGRADES, LEVEL0, STATUS] = await Promise.all(['data/characters.json','data/items.json','data/upgrades.json','data/level0.json','data/statuses.json'].map(u=>fetch(u).then(r=>r.json()))); }
   catch(e){ return screen('<p>載入資料失敗。請用 http 伺服器開啟，不要直接開檔案。</p>'); }
   menuActs.title();
 }
