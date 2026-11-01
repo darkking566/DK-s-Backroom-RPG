@@ -1,4 +1,5 @@
 {
+  "name": "Level 0",
   "stages": 9,
   "forks": 2,
   "plan": { "0": "資源", "3": "商人" },
@@ -690,18 +691,6 @@
           "fail": [{ "san": 3, "why": "它一直在看你。你不敢確認它是否動過。" }, { "done": true }] }
       ] }
   ],
-  "stubs": {
-    "lv1":   { "name": "Level 1（施工中）",  "intro": "混凝土倉庫，貨架高得看不到頂。", "exitText": "你離開了 Level 1" },
-    "lv2":   { "name": "Level 2（施工中）",  "intro": "悶熱的管線隧道，遠處有警報在響。", "exitText": "你離開了 Level 2" },
-    "lv3":   { "name": "Level 3（施工中）",  "intro": "發電廠般的走廊，頭頂的電線嗡嗡作響。", "exitText": "你離開了 Level 3" },
-    "lv4":   { "name": "Level 4（施工中）",  "intro": "灰色辦公室，隔板一格接著一格。", "exitText": "你離開了 Level 4" },
-    "lv37":  { "name": "Level 37（施工中）", "intro": "藍白磁磚的泳池空間，水聲迴盪。", "exitText": "你離開了 Level 37" },
-    "lvm1":  { "name": "Level -1（施工中）", "intro": "比 Level 0 更暗的地下走廊。", "exitText": "你離開了 Level -1" }
-  },
-  "marked": [
-    { "say": "身後有什麼在跟著你，但你不敢回頭。", "cls": "bad" },
-    { "san": 1, "why": "被盯上的感覺揮之不去。" }
-  ],
   "shops": {
     "window": { "title": "形狀有點怪異的窗戶", "say": "玻璃另一邊是一片模糊的光，看不出是什麼。",
       "offers": [
@@ -829,11 +818,11 @@
       "offers": [
         { "label": "拿筆記塞住縫", "pay": ["note"], "do": [{ "say": "眼睛縮了回去，紙被推了出來，上面多了一行字。", "cls": "ok" }, { "done": true }] },
         { "label": "拿能量棒塞住縫", "pay": ["bar"], "do": [{ "say": "眼睛縮了回去，牆縫只剩一道黑。", "cls": "ok" }, { "done": true }] },
-        { "label": "走開", "do": [{ "say": "眼睛一直跟著你，直到你轉過轉角。" }, { "haunt": 2 }, { "done": true }] }
+        { "label": "走開", "do": [{ "say": "眼睛一直跟著你，直到你轉過轉角。" }, { "status": "watched" }, { "done": true }] }
       ] },
     "waiter": { "title": "無臉服務生", "say": "一瓶是灰的，一瓶是藍的。他托著盤，一動也不動。",
       "offers": [
-        { "label": "拿走灰色的杏仁水", "get": "almond", "do": [{ "set": "marked" }, { "say": "他的頭轉向你——雖然他沒有臉。", "cls": "bad" }, { "done": true }] },
+        { "label": "拿走灰色的杏仁水", "get": "almond", "do": [{ "status": "marked" }, { "say": "他的頭轉向你——雖然他沒有臉。", "cls": "bad" }, { "done": true }] },
         { "label": "用 1 枚硬幣換藍瓶", "pay": ["coin"], "do": [{ "check": "CHA",
             "ok":   [{ "say": "他把藍瓶放進你手心，指尖冰涼。", "cls": "ok" }, { "give": "almond_blue" }],
             "fail": [{ "say": "他收下硬幣，連同托盤一起端走了。", "cls": "bad" }] }, { "done": true }] }

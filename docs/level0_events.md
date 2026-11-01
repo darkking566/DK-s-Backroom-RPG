@@ -1,6 +1,8 @@
 # Level 0 事件設計稿（50 種）
 
-僅設計，尚未實作。規則沿用現有 `data/level0.json` 的事件語法：`say / san / check(STR·CON·DEX·INT·WIS·CHA，可加 dc；不寫用關卡 dc) / give / rand / ifHas / need / goto / end / done`，道具沿用 `data/items.json`。
+僅設計，尚未實作。規則沿用現有 `data/levels/level0.json` 的事件語法：`say / san / check(STR·CON·DEX·INT·WIS·CHA，可加 dc；不寫用關卡 dc) / give / rand / ifHas / need / goto / end / done`，道具沿用 `data/items.json`。
+
+**樓層檔**：每層一個 `data/levels/<id>.json`，`goto` 填檔名（不含 .json）。`"stub": true` 加上 `name`、`intro`、`exitText` 是施工中的樓層；正式樓層需要 `name`、`stages`、`objects`、`exit`，商店寫在該層自己的 `shops`。改完資料跑 `node tools/check-data.js` 檢查引用和拼字。
 
 **樓層規則**：關卡 JSON 可加 `"rules": [...]`，進關時會公告、狀態欄會列出。每條規則有 `name`、`desc`，以及下列任意效果：
 - `"dc": { "CHA": 3 }`：這層的魅力檢定 DC +3（可以是負數）
